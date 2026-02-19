@@ -1,15 +1,9 @@
 <?php
-/**
- * Database Configuration
- * Microloan Management System
- * GitHub: https://github.com/PhilCP/microloan-system
- */
-
-// Database credentials for XAMPP on Mac
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');  // Default XAMPP has no password
 define('DB_NAME', 'microloan_system');
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Create connection
 $conn = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);

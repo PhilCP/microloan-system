@@ -1,0 +1,162 @@
+/* RESET & BASE STYLES */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --accent: #ffffff;
+    --text-muted: #888888;
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --bg-light: #ffffff;
+    --bg-gray: #f8f9fa;
+    --bg-dark: #000000;
+}
+
+body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-dark);
+    color: #fff;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* NAVIGATION */
+nav {
+    position: fixed; top: 0; width: 100%; z-index: 1000;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+}
+.nav-container {
+    max-width: 1300px; margin: 0 auto; padding: 18px 40px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.logo { font-size: 22px; font-weight: 800; letter-spacing: -1px; color: #fff; text-decoration: none; }
+.nav-links { display: flex; gap: 35px; align-items: center; }
+.nav-links a { color: #888; text-decoration: none; font-size: 14px; transition: 0.3s; }
+.nav-links a:hover { color: #fff; }
+
+/* HERO SECTION */
+.hero {
+    height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(rgba(0,0,0,0.5), #000), url('../images/micro.jpg');
+    background-size: cover; background-position: center; background-attachment: fixed;
+}
+.hero-container { text-align: center; padding: 0 20px; }
+h1 { font-size: clamp(48px, 8vw, 80px); font-weight: 800; letter-spacing: -3px; line-height: 1; margin-bottom: 25px; }
+.gradient-text { background: linear-gradient(180deg, #fff 30%, #555 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-subtitle { font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 40px; }
+
+/* BUTTONS */
+.btn { padding: 16px 32px; border-radius: 100px; font-weight: 600; text-decoration: none; transition: 0.3s; display: inline-block; }
+.btn-white { background: #fff; color: #000; }
+.btn-white:hover { transform: scale(1.05); }
+.btn-outline { border: 1px solid #444; color: #fff; }
+.btn-outline:hover { border-color: #fff; }
+.btn-primary { background: #fff; color: #000 !important; padding: 10px 20px; border-radius: 50px; font-size: 13px; }
+
+/* FEATURES SECTION (WHITE BG) */
+.features { padding: 120px 40px; background: var(--bg-light); color: #111; }
+.section-title { 
+    text-align: center; font-size: 3rem; font-weight: 800; 
+    margin-bottom: 80px; /* Increased margin to fix the "too close" issue */
+    letter-spacing: -1px;
+}
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; }
+.feature-card { background: var(--bg-gray); padding: 50px; border-radius: 30px; border: 1px solid #eee; transition: 0.3s; }
+.feature-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+.feature-icon { font-size: 40px; margin-bottom: 20px; display: block; }
+.feature-title { font-size: 1.5rem; margin-bottom: 15px; }
+.feature-desc { color: #666; }
+
+/* STATS SECTION (GRAY BG) */
+.stats { padding: 100px 40px; background: var(--bg-gray); color: #111; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; max-width: 1100px; margin: 0 auto; text-align: center; }
+.stat-number { font-size: 3.5rem; font-weight: 800; letter-spacing: -2px; margin-bottom: 5px; color: #000; }
+.stat-label { color: #888; text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+
+/* FAQ SECTION (WHITE BG) */
+.faq-section { padding: 120px 40px; background: var(--bg-light); color: #111; }
+.faq-container { max-width: 800px; margin: 0 auto; }
+.faq-item { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+.faq-question { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; }
+.faq-answer { color: #666; font-size: 1rem; }
+/* REFINED FAQ STYLES */
+.faq-section {
+    padding: 120px 40px;
+    background: var(--bg-light);
+    color: #111;
+}
+
+.faq-container {
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: var(--bg-gray);
+    margin-bottom: 15px;
+    border-radius: 20px;
+    padding: 25px 35px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.faq-item:hover {
+    border-color: #ddd;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.faq-question {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #000;
+}
+
+/* The Icon Animation */
+.faq-icon {
+    font-size: 24px;
+    font-weight: 400;
+    transition: transform 0.4s ease;
+    color: #888;
+}
+
+.faq-item.active .faq-icon {
+    transform: rotate(45px); /* Rotates the + to look like an x */
+    color: #000;
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #555;
+    font-size: 1rem;
+    margin-top: 0;
+}
+
+.faq-item.active .faq-answer {
+    max-height: 200px; /* Adjust based on content */
+    opacity: 1;
+    margin-top: 15px;
+    padding-bottom: 10px;
+}
+
+/* CTA SECTION (WHITE BG) */
+.cta-section { padding: 120px 40px; background: var(--bg-light); text-align: center; border-top: 1px solid #eee; }
+.cta-container { max-width: 800px; margin: 0 auto; }
+.cta-section h2 { font-size: 3.5rem; font-weight: 800; color: #000; margin-bottom: 20px; letter-spacing: -2px; }
+.cta-section p { font-size: 1.2rem; color: #666; margin-bottom: 40px; }
+.btn-black { background: #000; color: #fff; padding: 18px 40px; border-radius: 100px; font-weight: 600; text-decoration: none; display: inline-block; }
+
+/* FOOTER */
+footer { background: #000; padding: 80px 40px; text-align: center; color: #555; }
+.footer-links { display: flex; justify-content: center; gap: 30px; margin: 30px 0; }
+.footer-links a { color: #555; text-decoration: none; transition: 0.3s; }
+.footer-links a:hover { color: #fff; }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
