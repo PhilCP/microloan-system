@@ -312,26 +312,21 @@ $role = "officer";
     margin-bottom: 16px;
 }
 
-@media (max-width: 768px) {
-    .loan-details-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .action-buttons {
-        grid-template-columns: 1fr;
+@media (max-width: 992px) {
+    .dashboard-main {
+        margin-left: 0 !important;
+        padding-top: 80px !important;
     }
 }
 </style>
 </head>
-<body>
+<body style="background: #000;">
 
-<!-- Modal -->
 <div id="actionModal" class="modal">
     <div class="modal-content">
         <h3 id="modalTitle">Review Loan Application</h3>
         <div class="modal-loan-details" id="modalLoanDetails">
-            <!-- Details will be populated by JavaScript -->
-        </div>
+            </div>
         <label for="officerRemarks" style="display: block; margin-bottom: 8px; color: #ddd;">
             Remarks / Reason (Optional)
         </label>
@@ -344,11 +339,12 @@ $role = "officer";
 </div>
 
 <?php include '../includes/sidebar.php'; ?>
-<main class="dashboard-main" id="dashboardMain">
+
+<main class="dashboard-main" id="dashboardMain" style="margin-left: 240px; transition: 0.3s; padding: 30px;">
 <?php include '../includes/dashboard_header.php'; ?>
 
 <div class="welcome">
-    <h2>⏳ Pending Loan Applications</h2>
+    <h2 style="color: #fff;">⏳ Pending Loan Applications</h2>
     <p style="color: #999;">Review and process pending loan applications</p>
 </div>
 
@@ -450,7 +446,6 @@ $role = "officer";
 // Sidebar toggle
 document.getElementById('sidebarToggle').addEventListener('click',()=>{
     document.getElementById('sidebar').classList.toggle('active');
-    document.getElementById('dashboardMain').classList.toggle('shifted');
 });
 
 // Modal and Action Handling
@@ -459,7 +454,6 @@ let currentAction = null;
 const modal = document.getElementById('actionModal');
 const remarksInput = document.getElementById('officerRemarks');
 
-// Add click handlers to all action buttons
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         currentLoanId = this.dataset.id;
@@ -495,13 +489,11 @@ document.querySelectorAll('.action-btn').forEach(btn => {
     });
 });
 
-// Close modal
 document.getElementById('cancelModal').onclick = () => modal.style.display = 'none';
 window.onclick = (event) => { 
     if (event.target == modal) modal.style.display = 'none'; 
 };
 
-// Confirm action
 document.getElementById('confirmAction').onclick = function() {
     const btn = this;
     const remarks = remarksInput.value.trim();
@@ -519,7 +511,6 @@ document.getElementById('confirmAction').onclick = function() {
     .then(data => {
         if(data.success) {
             if(currentAction !== 'remark_only') {
-                // Remove the loan card from view
                 const loanCard = document.getElementById(`loanCard-${currentLoanId}`);
                 if(loanCard) {
                     loanCard.style.transition = 'all 0.3s';
@@ -527,23 +518,15 @@ document.getElementById('confirmAction').onclick = function() {
                     loanCard.style.transform = 'translateX(-100%)';
                     setTimeout(() => {
                         loanCard.remove();
-                        
-                        // Check if no loans left
                         const remainingCards = document.querySelectorAll('.loan-card');
-                        if(remainingCards.length === 0) {
-                            location.reload();
-                        }
+                        if(remainingCards.length === 0) location.reload();
                     }, 300);
                 }
             } else {
-                // Update notes button data
                 const notesBtns = document.querySelectorAll(`[data-id="${currentLoanId}"]`);
-                notesBtns.forEach(noteBtn => {
-                    noteBtn.dataset.remarks = remarks;
-                });
+                notesBtns.forEach(noteBtn => { noteBtn.dataset.remarks = remarks; });
                 alert('Notes updated successfully');
             }
-            
             modal.style.display = 'none';
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));

@@ -1,4 +1,8 @@
 <?php
+/**
+ * Approved Loans & Repayments Management
+ * Officer-side interface for tracking active debt and logging capital recovery.
+ */
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -13,7 +17,7 @@ if(!$user){
     die("User not found. Check session.");
 }
 
-// Get approved loans with repayment details
+// Tactical Query: Fetch active loans with real-time aggregate repayment stats
 $sqlApproved = "SELECT l.*, 
                 u.full_name, u.email, u.phone,
                 (SELECT SUM(amount_paid) FROM repayments WHERE loan_id = l.id) as total_paid,
@@ -29,7 +33,7 @@ if(!$approvedResult){
     die("Query failed: " . $conn->error);
 }
 
-$pageTitle = "Approved Loans & Repayments";
+$pageTitle = "Repayment Management";
 $role = "officer";
 ?>
 <!DOCTYPE html>
@@ -40,474 +44,240 @@ $role = "officer";
 <title><?php echo $pageTitle; ?></title>
 <link rel="stylesheet" href="../assets/css/dashboard.css">
 <style>
-/* Payment Modal Adjustments for Screen Fit */
+/* Dashboard Theme Overrides */
+body { background: #050505; color: #fff; }
+
+/* Modal Tactical Styling */
 .modal { 
     display: none; 
     position: fixed; 
     z-index: 9999; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: rgba(0,0,0,0.85); 
-    backdrop-filter: blur(5px); 
-    overflow-y: auto; /* Enable scroll if modal is too tall */
-    padding: 20px 0;
+    left: 0; top: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.9); 
+    backdrop-filter: blur(8px); 
 }
 
 .modal-content { 
-    background: #1a1a1a; 
-    margin: 2% auto; /* Reduced margin to fit screen better */
-    padding: 25px; 
-    border: 1px solid #f0a500; 
-    width: 95%;
-    max-width: 480px;
+    background: #0f0f0f; 
+    margin: 5% auto;
+    padding: 30px; 
+    border: 1px solid #333; 
+    width: 90%;
+    max-width: 500px;
     border-radius: 12px; 
-    color: white; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,1); 
 }
 
-.modal-content h3 { 
-    color: #f0a500; 
-    margin-top: 0; 
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-}
+.modal-header { border-bottom: 1px solid #222; margin-bottom: 20px; padding-bottom: 10px; }
+.modal-header h3 { color: #f0a500; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
 
-.form-group {
-    margin-bottom: 15px; /* Tighter spacing */
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 12px; background: #000; border: 1px solid #222; border-radius: 6px; color: #fff; font-size: 14px; transition: 0.3s;
 }
+.form-group input:focus { border-color: #f0a500; outline: none; }
 
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #ddd;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 14px;
-}
-
-.payment-summary {
-    background: rgba(34, 197, 94, 0.1);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border-left: 4px solid #22c55e;
-}
-
-.payment-summary p {
-    margin: 4px 0;
-    font-size: 13px;
-}
-
-/* Container Spacing Fix */
-.welcome {
-    margin-bottom: 30px; /* Space between header and loan cards */
-}
-
-/* Loan Cards */
-.loan-card {
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-    transition: all 0.3s;
-}
-
-.loan-card:hover {
-    border-color: #f0a500;
-}
-
-.loan-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-}
-
-.loan-id {
-    font-size: 20px;
-    font-weight: 700;
-    color: #f0a500;
-}
-
-.loan-status-badge {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.loan-status-badge.completed {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.borrower-info {
-    background: rgba(59, 130, 246, 0.1);
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    border-left: 4px solid #3b82f6;
-}
-
-.borrower-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 8px;
-}
-
-.borrower-contact {
-    font-size: 13px;
-    color: #888;
-}
-
-.loan-details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.detail-box {
+.payment-summary-box {
     background: rgba(240, 165, 0, 0.05);
-    padding: 12px;
+    padding: 15px;
     border-radius: 8px;
+    margin-bottom: 20px;
     border: 1px solid rgba(240, 165, 0, 0.1);
 }
 
-.detail-label {
-    font-size: 11px;
-    color: #888;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
+/* Loan Card Grid */
+.loans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
 
-.detail-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: #ddd;
-}
-
-.progress-section {
-    margin: 20px 0;
-}
-
-.progress-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 8px;
-}
-
-.progress-bar-container {
-    background: #222;
-    height: 12px;
-    border-radius: 6px;
+.loan-card {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 24px;
+    transition: 0.3s;
+    position: relative;
     overflow: hidden;
 }
+.loan-card:hover { border-color: #f0a500; transform: translateY(-5px); }
 
-.progress-bar-fill {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    height: 100%;
-    border-radius: 6px;
-    transition: width 0.3s;
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.ref-id { font-family: 'Courier New', monospace; color: #f0a500; font-weight: 800; }
+
+.borrower-tag { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+.contact-tag { font-size: 12px; color: #444; margin-bottom: 20px; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-item { background: #111; padding: 12px; border-radius: 8px; }
+.stat-label { font-size: 9px; color: #444; text-transform: uppercase; font-weight: 800; }
+.stat-value { font-size: 15px; font-weight: 700; }
+
+.progress-track { height: 6px; background: #1a1a1a; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+.progress-fill { height: 100%; background: #f0a500; box-shadow: 0 0 10px rgba(240, 165, 0, 0.3); }
+
+.action-btn {
+    width: 100%; padding: 14px; background: #f0a500; color: #000; border: none; border-radius: 8px; 
+    font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s;
 }
+.action-btn:hover { background: #ffc107; box-shadow: 0 5px 15px rgba(240, 165, 0, 0.2); }
+.action-btn:disabled { background: #111; color: #333; cursor: not-allowed; }
 
-.record-payment-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #f0a500, #ff8c00);
-    color: #000;
-    border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.record-payment-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(240, 165, 0, 0.4);
-}
-
-.record-payment-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #888;
-}
-
-.modal-actions { 
-    display: flex; 
-    gap: 10px; 
-    justify-content: flex-end;
-    margin-top: 15px;
-}
-
-.modal-actions button { 
-    padding: 10px 20px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    border: none; 
-    font-weight: bold;
-}
-
-.btn-submit { background: #22c55e; color: #000; }
-.btn-cancel { background: #333; color: #fff; }
-
-@media (max-height: 700px) {
-    .modal-content { margin: 1% auto; padding: 15px; }
-    .form-group { margin-bottom: 10px; }
-}
+@media (max-width: 768px) { .loans-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <div id="paymentModal" class="modal">
     <div class="modal-content">
-        <h3>💰 Record Loan Repayment</h3>
-        <div id="paymentLoanInfo" class="payment-summary">
-            </div>
+        <div class="modal-header"><h3>Credit Entry</h3></div>
+        <div id="paymentLoanInfo" class="payment-summary-box"></div>
         
         <form id="paymentForm">
             <input type="hidden" id="loanId" name="loan_id">
-            
             <div class="form-group">
-                <label for="paymentAmount">Amount (KES) *</label>
-                <input type="number" id="paymentAmount" name="amount_paid" min="1" step="0.01" required>
+                <label>Recovery Amount (KES)</label>
+                <input type="number" id="paymentAmount" name="amount_paid" step="0.01" required>
             </div>
-            
             <div class="form-group">
-                <label for="paymentDate">Payment Date *</label>
-                <input type="date" id="paymentDate" name="payment_date" required max="<?php echo date('Y-m-d'); ?>">
+                <label>Transaction Date</label>
+                <input type="date" id="paymentDate" name="payment_date" required value="<?php echo date('Y-m-d'); ?>">
             </div>
-            
             <div class="form-group">
-                <label for="paymentMethod">Method *</label>
-                <select id="paymentMethod" name="payment_method" required>
-                    <option value="">Select method</option>
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="mobile_money">Mobile Money (M-Pesa)</option>
-                    <option value="cheque">Cheque</option>
+                <label>Settlement Method</label>
+                <select name="payment_method" required>
+                    <option value="cash">Field Cash</option>
+                    <option value="bank_transfer">Direct Deposit</option>
+                    <option value="mobile_money">M-PESA Utility</option>
                 </select>
             </div>
-            
             <div class="form-group">
-                <label for="receiptNumber">Receipt Reference</label>
-                <input type="text" id="receiptNumber" name="receipt_number">
+                <label>Internal Reference / Receipt #</label>
+                <input type="text" name="receipt_number" placeholder="Optional">
             </div>
-            
-            <div class="form-group">
-                <label for="paymentNotes">Notes</label>
-                <textarea id="paymentNotes" name="notes" rows="2"></textarea>
-            </div>
-            
-            <div class="modal-actions">
-                <button type="button" id="cancelPayment" class="btn-cancel">Cancel</button>
-                <button type="submit" class="btn-submit">Record</button>
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                <button type="button" id="closeModal" class="action-btn" style="background:#1a1a1a; color:#fff;">Abort</button>
+                <button type="submit" id="submitPayment" class="action-btn">Commit Entry</button>
             </div>
         </form>
     </div>
 </div>
 
 <?php include '../includes/sidebar.php'; ?>
-<main class="dashboard-main" id="dashboardMain">
-<?php include '../includes/dashboard_header.php'; ?>
 
-<div class="welcome">
-    <h2>💰 Approved Loans & Repayments</h2>
-    <p style="color: #999;">Manage active loans and record repayments</p>
-</div>
+<main class="dashboard-main" id="dashboardMain" style="margin-left: 240px; padding: 30px;">
+    <?php include '../includes/dashboard_header.php'; ?>
 
-<div class="loans-container">
-    <?php if ($approvedResult->num_rows > 0): ?>
-        <?php while ($loan = $approvedResult->fetch_assoc()): ?>
-            <?php
-            $totalPaid = $loan['total_paid'] ?? 0;
-            $remaining = $loan['remaining_balance'];
-            $totalAmount = $loan['total_amount'] > 0 ? $loan['total_amount'] : 1; 
-            $progress = ($totalPaid / $totalAmount) * 100;
-            $isCompleted = $remaining <= 0;
-            ?>
-            <div class="loan-card">
-                <div class="loan-card-header">
-                    <div class="loan-id">Loan #<?php echo $loan['id']; ?></div>
-                    <div class="loan-status-badge <?php echo $isCompleted ? 'completed' : ''; ?>">
-                        <?php echo $isCompleted ? 'COMPLETED' : 'ACTIVE'; ?>
-                    </div>
-                </div>
+    <div class="header-section" style="margin-bottom: 40px;">
+        <h2 style="font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Repayment Management</h2>
+        <p style="color: #444;">Monitor operational liquidity and borrower performance.</p>
+    </div>
 
-                <div class="borrower-info">
-                    <div class="borrower-name"><?php echo htmlspecialchars($loan['full_name']); ?></div>
-                    <div class="borrower-contact">
-                        📧 <?php echo htmlspecialchars($loan['email']); ?> | 
-                        📱 <?php echo htmlspecialchars($loan['phone']); ?>
+    <div class="loans-grid">
+        <?php if ($approvedResult->num_rows > 0): ?>
+            <?php while ($loan = $approvedResult->fetch_assoc()): ?>
+                <?php
+                $totalPaid = $loan['total_paid'] ?? 0;
+                $balance = $loan['remaining_balance'];
+                $totalContract = $loan['total_amount'];
+                $progressPercent = ($totalContract > 0) ? ($totalPaid / $totalContract) * 100 : 0;
+                ?>
+                <div class="loan-card">
+                    <div class="card-header">
+                        <span class="ref-id">#LN-<?php echo str_pad($loan['id'], 4, '0', STR_PAD_LEFT); ?></span>
+                        <span style="font-size: 10px; color: #22c55e; font-weight: 900;">[ ACTIVE ]</span>
                     </div>
-                </div>
 
-                <div class="loan-details-grid">
-                    <div class="detail-box">
-                        <div class="detail-label">Loan Amount</div>
-                        <div class="detail-value">KES <?php echo number_format($loan['amount'], 2); ?></div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-label">Total Repayment</div>
-                        <div class="detail-value">KES <?php echo number_format($loan['total_amount'], 2); ?></div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-label">Total Paid</div>
-                        <div class="detail-value" style="color: #22c55e;">KES <?php echo number_format($totalPaid, 2); ?></div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-label">Remaining</div>
-                        <div class="detail-value" style="color: #eab308;">KES <?php echo number_format($remaining, 2); ?></div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-label">Payments Made</div>
-                        <div class="detail-value"><?php echo $loan['payment_count']; ?></div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-label">Last Payment</div>
-                        <div class="detail-value">
-                            <?php echo $loan['last_payment_date'] ? date('M d, Y', strtotime($loan['last_payment_date'])) : 'None'; ?>
+                    <div class="borrower-tag"><?php echo htmlspecialchars($loan['full_name']); ?></div>
+                    <div class="contact-tag">📞 <?php echo htmlspecialchars($loan['phone']); ?></div>
+
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Total Contract</div>
+                            <div class="stat-value">KES <?php echo number_format($totalContract); ?></div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Recovery (Paid)</div>
+                            <div class="stat-value" style="color: #22c55e;">KES <?php echo number_format($totalPaid); ?></div>
+                        </div>
+                        <div class="stat-item" style="grid-column: span 2; border-top: 1px solid #222; margin-top: 5px; padding-top: 15px;">
+                            <div class="stat-label">Outstanding Liability</div>
+                            <div class="stat-value" style="color: #f0a500; font-size: 20px;">KES <?php echo number_format($balance); ?></div>
                         </div>
                     </div>
-                </div>
 
-                <div class="progress-section">
-                    <div class="progress-label">
-                        <span>Repayment Progress</span>
-                        <span><strong><?php echo number_format($progress, 1); ?>%</strong></span>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: <?php echo min($progressPercent, 100); ?>%"></div>
                     </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: <?php echo min($progress, 100); ?>%"></div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#444; margin-bottom:20px; font-weight:800;">
+                        <span>COLLECTED: <?php echo round($progressPercent); ?>%</span>
+                        <span>TERMS: <?php echo $loan['duration_months']; ?> MONTHS</span>
                     </div>
-                </div>
 
-                <button class="record-payment-btn"
-                        data-loan-id="<?php echo $loan['id']; ?>"
-                        data-borrower="<?php echo htmlspecialchars($loan['full_name']); ?>"
-                        data-total="<?php echo $loan['total_amount']; ?>"
-                        data-paid="<?php echo $totalPaid; ?>"
-                        data-remaining="<?php echo $remaining; ?>"
-                        <?php echo $isCompleted ? 'disabled' : ''; ?>>
-                    <?php echo $isCompleted ? '✓ Loan Fully Repaid' : '💳 Record Payment'; ?>
-                </button>
+                    <button class="action-btn trigger-payment"
+                            data-id="<?php echo $loan['id']; ?>"
+                            data-name="<?php echo htmlspecialchars($loan['full_name']); ?>"
+                            data-balance="<?php echo $balance; ?>">
+                        Record Capital Recovery
+                    </button>
+                </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <div style="grid-column: 1/-1; text-align:center; padding: 100px; color:#222;">
+                <h3 style="text-transform:uppercase;">No Active Debt Found</h3>
             </div>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <div class="empty-state">
-            <div class="empty-state-icon">📋</div>
-            <h3 style="color: #ddd;">No Approved Loans</h3>
-            <p>There are no approved loans to manage at the moment.</p>
-        </div>
-    <?php endif; ?>
-</div>
+        <?php endif; ?>
+    </div>
+</main>
 
 <script>
-document.getElementById('sidebarToggle').addEventListener('click',()=>{
-    document.getElementById('sidebar').classList.toggle('active');
-    document.getElementById('dashboardMain').classList.toggle('shifted');
-});
-
 const modal = document.getElementById('paymentModal');
-let currentLoanData = {};
 
-document.querySelectorAll('.record-payment-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (this.disabled) return;
-        
-        currentLoanData = {
-            id: this.dataset.loanId,
-            borrower: this.dataset.borrower,
-            total: parseFloat(this.dataset.total),
-            paid: parseFloat(this.dataset.paid),
-            remaining: parseFloat(this.dataset.remaining)
-        };
-        
-        document.getElementById('loanId').value = currentLoanData.id;
-        document.getElementById('paymentAmount').max = currentLoanData.remaining;
-        document.getElementById('paymentDate').value = '<?php echo date('Y-m-d'); ?>';
-        
+// Open Modal & Populate Data
+document.querySelectorAll('.trigger-payment').forEach(btn => {
+    btn.onclick = function() {
+        const id = this.dataset.id;
+        const name = this.dataset.name;
+        const bal = this.dataset.balance;
+
+        document.getElementById('loanId').value = id;
+        document.getElementById('paymentAmount').max = bal;
+        document.getElementById('paymentAmount').value = bal;
         document.getElementById('paymentLoanInfo').innerHTML = `
-            <p><strong>Loan ID:</strong> #${currentLoanData.id} | <strong>Borrower:</strong> ${currentLoanData.borrower}</p>
-            <p><strong>Balance:</strong> KES ${currentLoanData.remaining.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+            <div style="font-size:12px; color:#666;">CREDITING ACCOUNT:</div>
+            <div style="font-weight:900; color:#fff;">${name} (Ref: #LN-${id.padStart(4, '0')})</div>
+            <div style="font-size:11px; color:#f0a500; margin-top:5px;">MAX RECOVERY: KES ${parseFloat(bal).toLocaleString()}</div>
         `;
-        
         modal.style.display = 'block';
-    });
+    };
 });
 
-document.getElementById('cancelPayment').onclick = () => {
-    modal.style.display = 'none';
-    document.getElementById('paymentForm').reset();
-};
+// Close Logic
+document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
+window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
 
-window.onclick = (event) => { 
-    if (event.target == modal) {
-        modal.style.display = 'none';
-        document.getElementById('paymentForm').reset();
-    }
-};
-
+// AJAX Submission
 document.getElementById('paymentForm').onsubmit = function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    const amount = parseFloat(formData.get('amount_paid'));
-    
-    if (amount <= 0 || amount > currentLoanData.remaining) {
-        alert('Invalid amount. Must be greater than 0 and not exceed balance.');
-        return;
-    }
-    
-    const submitBtn = this.querySelector('.btn-submit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = '...';
-    
-    fetch('record_payment.php', {
-        method: 'POST',
-        body: formData
-    })
+    const btn = document.getElementById('submitPayment');
+    btn.disabled = true;
+    btn.innerHTML = "COMMITTING...";
+
+    fetch('record_payment.php', { method: 'POST', body: new FormData(this) })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            alert('Success!');
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
+        if (data.success) { 
+            modal.style.display = 'none';
+            location.reload(); 
+        } else { 
+            alert('SYSTEM REJECTION: ' + data.error); 
+            btn.disabled = false;
+            btn.innerHTML = "COMMIT ENTRY";
         }
     })
-    .catch(err => alert('Network error.'))
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Record';
+    .catch(() => { 
+        alert('COMMUNICATION FAILURE'); 
+        btn.disabled = false;
     });
 };
 </script>
-</main>
 </body>
 </html>
