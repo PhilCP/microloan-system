@@ -12,41 +12,57 @@ if (!isset($_GET['id'])) {
 
 $loan_id = intval($_GET['id']);
 
-// Fetch Loan with validation
+// Fetch Loan with validation to ensure it belongs to the logged-in borrower
 $stmt = $conn->prepare("SELECT * FROM loans WHERE id = ? AND borrower_id = ?");
 $stmt->bind_param("ii", $loan_id, $user['id']);
 $stmt->execute();
 $loan = $stmt->get_result()->fetch_assoc();
 
-if (!$loan) { die("Loan not found."); }
+if (!$loan) { die("Loan not found or access denied."); }
 
 $success = '';
 $error = '';
 
+// Handle Payment Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $payment = isset($_POST['pay_full']) ? $loan['remaining_balance'] : floatval($_POST['payment']);
 
     if ($payment <= 0) {
-        $error = "Enter valid payment amount.";
-    } elseif ($payment > $loan['remaining_balance']) {
+        $error = "Enter a valid payment amount.";
+    } elseif ($payment > $loan['remaining_balance'] + 0.01) { // Added small buffer for float precision
         $error = "Payment exceeds remaining balance.";
     } else {
-        $new_balance = $loan['remaining_balance'] - $payment;
+        $new_balance = max(0, $loan['remaining_balance'] - $payment);
         $status = ($new_balance <= 0) ? 'completed' : 'approved';
 
-        // Update Loan Balance
-        $update = $conn->prepare("UPDATE loans SET remaining_balance=?, status=? WHERE id=?");
-        $update->bind_param("dsi", $new_balance, $status, $loan_id);
-        $update->execute();
+        // Start Transaction for data integrity
+        $conn->begin_transaction();
+        try {
+            // Update Loan Balance
+            $update = $conn->prepare("UPDATE loans SET remaining_balance=?, status=? WHERE id=?");
+            $update->bind_param("dsi", $new_balance, $status, $loan_id);
+            $update->execute();
 
-        // Insert Repayment - Corrected to include recorded_by and CURDATE()
-        $insert = $conn->prepare("INSERT INTO repayments (loan_id, amount_paid, payment_date, recorded_by) VALUES (?, ?, CURDATE(), ?)");
-        $insert->bind_param("idi", $loan_id, $payment, $user['id']);
-        $insert->execute();
+            // Insert Repayment Record
+            $insert = $conn->prepare("INSERT INTO repayments (loan_id, amount_paid, payment_date, recorded_by) VALUES (?, ?, CURDATE(), ?)");
+            $insert->bind_param("idi", $loan_id, $payment, $user['id']);
+            $insert->execute();
 
-        $loan['remaining_balance'] = $new_balance;
-        $loan['status'] = $status;
-        $success = "Payment successful!";
+            // Log activity
+            $log_stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+            $log_action = "Made payment of KES " . number_format($payment, 2) . " for Loan #$loan_id";
+            $log_stmt->bind_param("is", $user['id'], $log_action);
+            $log_stmt->execute();
+
+            $conn->commit();
+            
+            $loan['remaining_balance'] = $new_balance;
+            $loan['status'] = $status;
+            $success = "Payment of KES " . number_format($payment, 2) . " processed successfully!";
+        } catch (Exception $e) {
+            $conn->rollback();
+            $error = "Transaction failed. Please try again.";
+        }
     }
 }
 
@@ -55,87 +71,181 @@ $history = $conn->prepare("SELECT * FROM repayments WHERE loan_id=? ORDER BY cre
 $history->bind_param("i", $loan_id);
 $history->execute();
 $repayments = $history->get_result();
+
+$pageTitle = "Repay Loan #" . $loan_id;
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Repay Loan #<?php echo $loan_id; ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/loan-app.css">
     <style>
-        body { background: #0b0b0b; color: #ddd; padding: 40px 20px; }
+        body { background: #000; color: #fff; }
+        .form-container { max-width: 700px; margin: 40px auto; padding: 20px; }
+        
+        /* Tactical Info Box */
+        .info-box {
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            border-top: 4px solid #f0a500;
+        }
+
+        .balance-display {
+            font-size: 36px;
+            font-weight: 900;
+            color: #f0a500;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Forms */
+        .payment-input-wrapper {
+            background: #111;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 25px;
+            border: 1px solid #222;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 10px; }
+        .btn { 
+            flex: 1; 
+            padding: 14px; 
+            border-radius: 8px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            border: none;
+            transition: 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn-primary { background: #f0a500; color: #000; }
+        .btn-primary:hover { background: #ffc107; transform: translateY(-2px); }
+        .btn-secondary { background: #1a1a1a; color: #fff; }
+
+        /* Table */
+        .statement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .statement-table th { text-align: left; color: #555; padding: 12px; border-bottom: 1px solid #222; text-transform: uppercase; }
+        .statement-table td { padding: 15px 12px; border-bottom: 1px solid #111; }
+
         .btn-download {
-            padding: 5px 12px;
+            padding: 6px 12px;
             background: rgba(240, 165, 0, 0.1);
             color: #f0a500;
             border: 1px solid #f0a500;
             border-radius: 4px;
             text-decoration: none;
-            font-size: 12px;
-            transition: 0.3s;
+            font-size: 11px;
+            font-weight: 700;
         }
         .btn-download:hover { background: #f0a500; color: #000; }
+        
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: 700; }
+        .alert-success { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid #22c55e; }
+        .alert-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h2>💳 Repay Loan #<?php echo $loan['id']; ?></h2>
+    <div style="margin-bottom: 30px;">
+        <h2 style="margin:0;">💳 Repayment Terminal</h2>
+        <p style="color: #666;">Loan Reference: #LN-<?php echo str_pad($loan['id'], 5, '0', STR_PAD_LEFT); ?></p>
+    </div>
     
     <?php if($success): ?>
         <div class="alert alert-success">✓ <?php echo $success; ?></div>
     <?php endif; ?>
+    
+    <?php if($error): ?>
+        <div class="alert alert-error">⚠️ <?php echo $error; ?></div>
+    <?php endif; ?>
 
     <div class="info-box">
-        <h4>Loan Standing</h4>
-        <div class="balance-display" style="font-size: 28px; margin: 10px 0;">
-            KES <?php echo number_format($loan['remaining_balance'],2); ?>
+        <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Outstanding Balance</div>
+        <div class="balance-display">
+            KES <?php echo number_format($loan['remaining_balance'], 2); ?>
         </div>
-        <p>Total Payable: KES <?php echo number_format($loan['total_amount'],2); ?></p>
+        <div style="font-size: 13px; color: #444;">Original Liability: KES <?php echo number_format($loan['total_amount'], 2); ?></div>
     </div>
 
     <?php if($loan['remaining_balance'] > 0): ?>
-    <form method="POST" style="margin-top: 20px;">
-        <div class="form-group">
-            <label>Amount to Pay (KES)</label>
-            <input type="number" name="payment" step="0.01" placeholder="Enter amount..." required>
+    <div class="payment-input-wrapper">
+        <form method="POST">
+            <label style="color: #888; display: block; margin-bottom: 10px; font-size: 12px;">SPECIFY PAYMENT AMOUNT</label>
+            <input type="number" name="payment" step="0.01" min="1" max="<?php echo $loan['remaining_balance']; ?>" placeholder="0.00" required>
+            
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Process Payment</button>
+                <button type="submit" name="pay_full" class="btn btn-secondary" onclick="return confirm('Clear total remaining balance?')">Pay Full Balance</button>
+            </div>
+        </form>
+    </div>
+    <?php else: ?>
+        <div class="alert alert-success" style="text-align:center; margin-top:20px;">
+            🎊 This loan is fully cleared. 
         </div>
-        <div class="btn-group">
-            <button type="submit" class="btn btn-primary">Submit Payment</button>
-            <button type="submit" name="pay_full" class="btn btn-secondary">Pay Full</button>
-            <a href="my-loans.php" class="btn btn-secondary">Back</a>
-        </div>
-    </form>
     <?php endif; ?>
 
-    <h3 style="margin-top:50px; color: #f0a500;">📊 Repayment Transactions</h3>
-    <table class="statement-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Amount Paid</th>
-                <th style="text-align: right;">Receipt</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while($row = $repayments->fetch_assoc()): ?>
-            <tr>
-                <td><?php echo date('M d, Y', strtotime($row['payment_date'])); ?></td>
-                <td style="font-weight: bold; color: #22c55e;">KES <?php echo number_format($row['amount_paid'],2); ?></td>
-                <td style="text-align: right;">
-                    <a href="generate-receipt.php?repayment_id=<?php echo $row['id']; ?>" target="_blank" class="btn-download">
-                        📄 Download
-                    </a>
-                </td>
-            </tr>
-            <?php endwhile; ?>
-            <?php if($repayments->num_rows == 0): ?>
-                <tr><td colspan="3" style="text-align:center; padding: 30px; color: #666;">No payments recorded yet.</td></tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="my-loans.php" style="color: #444; text-decoration: none; font-size: 13px; font-weight: 700;">← RETURN TO PORTFOLIO</a>
+    </div>
+
+    <div style="margin-top: 50px;">
+        <h3 style="color: #f0a500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">📜 Transaction Ledger</h3>
+        <div style="background: #0a0a0a; border-radius: 12px; border: 1px solid #1a1a1a; overflow: hidden;">
+            <table class="statement-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount Paid</th>
+                        <th style="text-align: right; padding-right: 20px;">Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $repayments->fetch_assoc()): ?>
+                    <tr>
+                        <td style="color: #666;"><?php echo date('d M Y', strtotime($row['payment_date'])); ?></td>
+                        <td style="font-weight: 800; color: #fff;">KES <?php echo number_format($row['amount_paid'], 2); ?></td>
+                        <td style="text-align: right; padding-right: 20px;">
+                            <a href="generate-receipt.php?repayment_id=<?php echo $row['id']; ?>" target="_blank" class="btn-download">
+                                RECEIPT
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                    <?php if($repayments->num_rows == 0): ?>
+                        <tr><td colspan="3" style="text-align:center; padding: 40px; color: #333;">No transactions identified for this account.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
 </body>
 </html>

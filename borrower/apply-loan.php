@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $duration = intval($_POST['duration_months']);
     $purpose = trim($_POST['purpose']);
     
-    // Validate inputs
- if ($amount < 500) {
+    // Validate inputs against the requirements
+    if ($amount < 500) {
         $error = "Minimum loan amount is KES 500";
     } elseif ($amount > 10000) {
         $error = "Maximum loan amount is KES 10,000";
@@ -45,15 +45,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($stmt->execute()) {
             $loan_id = $stmt->insert_id;
             
-            // Log activity
+            // ========================================
+            // HYBRID AUTO-ASSIGNMENT SYSTEM
+            // ========================================
+            // Find officer with least pending loans (Round Robin)
+            $officerQuery = "SELECT u.id, u.full_name, COUNT(l.id) as loan_count 
+                            FROM users u 
+                            LEFT JOIN loans l ON u.id = l.approved_by AND l.status='pending'
+                            WHERE u.role='officer'
+                            GROUP BY u.id, u.full_name
+                            ORDER BY loan_count ASC, u.id ASC
+                            LIMIT 1";
+            
+            $officerResult = $conn->query($officerQuery);
+            
+            if ($officerResult && $officerResult->num_rows > 0) {
+                $officer = $officerResult->fetch_assoc();
+                
+                // Assign loan to officer with least pending loans
+                $assignStmt = $conn->prepare("UPDATE loans SET approved_by = ? WHERE id = ?");
+                $assignStmt->bind_param("ii", $officer['id'], $loan_id);
+                
+                if ($assignStmt->execute()) {
+                    // Log auto-assignment for tracking
+                    $assignLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                    $assignAction = "System auto-assigned loan #{$loan_id} to officer {$officer['full_name']} (ID: {$officer['id']})";
+                    $systemUserId = 1; // System user ID (or use borrower's ID)
+                    $assignLog->bind_param("is", $systemUserId, $assignAction);
+                    $assignLog->execute();
+                    
+                    $success = "Your loan application has been submitted and assigned to an officer for review! Application ID: #" . $loan_id;
+                } else {
+                    // Assignment failed, but loan was created
+                    $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
+                }
+                
+                $assignStmt->close();
+            } else {
+                // No officers available - leave unassigned for admin to manually assign
+                $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
+                
+                // Log that no officers were available
+                $noOfficerLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                $noOfficerAction = "Loan #{$loan_id} submitted but no officers available for auto-assignment";
+                $noOfficerLog->bind_param("is", $user['id'], $noOfficerAction);
+                $noOfficerLog->execute();
+            }
+            // ========================================
+            
+            // Log borrower's application activity
             $log_stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
             $log_action = "Applied for loan of KES " . number_format($amount, 2);
             $log_stmt->bind_param("is", $user['id'], $log_action);
             $log_stmt->execute();
             
-            $success = "Your loan application has been submitted successfully! Application ID: #" . $loan_id;
-            
-            // Clear form
+            // Clear post to reset form
             $_POST = array();
         } else {
             $error = "Error submitting application. Please try again.";
@@ -73,342 +119,166 @@ $role = "borrower";
 <title><?php echo $pageTitle; ?></title>
 <link rel="stylesheet" href="../assets/css/dashboard.css">
 <style>
-.form-container {
-    max-width: 800px;
-    margin: 0 auto;
-}
+/* Tactical Form Styling */
+.form-container { max-width: 800px; margin: 0 auto; }
 
-.alert {
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 24px;
-    font-size: 14px;
-}
-
-.alert-success {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.alert-error {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
+.alert { padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; font-weight: 600; }
+.alert-success { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+.alert-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
 
 .info-box {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.05);
     border-left: 4px solid #3b82f6;
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
     color: #ddd;
 }
+.info-box h4 { color: #3b82f6; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
 
-.info-box h4 {
-    color: #3b82f6;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.form-group { margin-bottom: 24px; }
+.form-group.full-width { grid-column: 1 / -1; }
 
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 24px;
-}
+label { display: block; color: #f0a500; font-weight: 700; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; }
+.required { color: #ef4444; }
 
-.form-group {
-    margin-bottom: 24px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-}
-
-label {
-    display: block;
-    color: #ddd;
-    font-weight: 600;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
-
-.required {
-    color: #ef4444;
-}
-
-input[type="number"],
-select,
-textarea {
+input, select, textarea {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #333;
+    padding: 14px;
+    border: 1px solid #222;
     border-radius: 8px;
-    font-size: 15px;
-    background: #111;
+    background: #0a0a0a;
     color: #fff;
-    font-family: inherit;
+    font-size: 15px;
+    transition: 0.3s;
 }
-
-input:focus,
-select:focus,
-textarea:focus {
-    outline: none;
-    border-color: #f0a500;
-}
-
-textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.help-text {
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
-}
+input:focus, select:focus, textarea:focus { border-color: #f0a500; outline: none; box-shadow: 0 0 10px rgba(240, 165, 0, 0.1); }
 
 .calculation-box {
-    background: rgba(240, 165, 0, 0.05);
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(240, 165, 0, 0.2);
+    background: #111;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #222;
+    margin-bottom: 30px;
 }
+.calc-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1a1a1a; font-size: 14px; }
+.calc-row.total { border-top: 2px solid #f0a500; border-bottom: none; margin-top: 10px; color: #f0a500; font-size: 20px; font-weight: 800; }
 
-.calculation-box h4 {
-    margin-bottom: 12px;
-    color: #f0a500;
-}
+.btn-group { display: flex; gap: 15px; }
+.btn { padding: 16px 30px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: 0.3s; text-align: center; border: none; flex: 1; text-transform: uppercase; letter-spacing: 1px; }
+.btn-primary { background: #f0a500; color: #000; }
+.btn-primary:hover { background: #ffc107; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(240, 165, 0, 0.2); }
+.btn-secondary { background: #1a1a1a; color: #fff; text-decoration: none; }
 
-.calc-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    font-size: 14px;
-    color: #ddd;
-}
-
-.calc-row.total {
-    border-top: 2px solid #333;
-    margin-top: 10px;
-    padding-top: 12px;
-    font-weight: 700;
-    font-size: 18px;
-    color: #f0a500;
-}
-
-.calc-value {
-    font-weight: 600;
-}
-
-.btn-group {
-    display: flex;
-    gap: 12px;
-}
-
-.btn {
-    padding: 14px 28px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background: #f0a500;
-    color: #000;
-    flex: 1;
-}
-
-.btn-primary:hover {
-    background: #ffc107;
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background: #333;
-    color: #fff;
-}
-
-.btn-secondary:hover {
-    background: #444;
-}
-
-@media (max-width: 768px) {
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .btn-group {
-        flex-direction: column;
-    }
-}
+@media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .btn-group { flex-direction: column; } }
 </style>
 </head>
-<body>
+<body style="background: #000; color: #fff;">
+
 <?php include '../includes/sidebar.php'; ?>
-<main class="dashboard-main" id="dashboardMain">
-<?php include '../includes/dashboard_header.php'; ?>
 
-<div class="welcome">
-    <h2>📝 Apply for a Loan</h2>
-    <p style="color: #999;">Fill in the details below to submit your loan application</p>
-</div>
+<main class="dashboard-main" id="dashboardMain" style="margin-left: 240px; transition: 0.3s; padding: 30px;">
+    <?php include '../includes/dashboard_header.php'; ?>
 
-<div class="form-container">
-    <?php if ($success): ?>
-        <div class="alert alert-success">
-            <?php echo htmlspecialchars($success); ?>
-            <br><br>
-            <a href="my-loans.php" style="color: #22c55e; font-weight: 600;">View My Loans →</a>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($error): ?>
-        <div class="alert alert-error">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-
-    <div class="info-box">
-        <h4>📋 Loan Requirements</h4>
-        <p style="margin: 0; line-height: 1.8;">
-            • Minimum amount: KES 500<br>
-            • Maximum amount: KES 10,000<br>
-            • Loan period: 1-24 months<br>
-            • Interest rate: <?php echo $interest_rate; ?>% flat rate<br>
-            • Processing time: 1-3 business days
-        </p>
+    <div class="welcome" style="margin-bottom: 30px;">
+        <h2 style="font-weight: 800; margin: 0;">📝 Capital Request</h2>
+        <p style="color: #666; margin-top: 5px;">Submit your loan details for processing.</p>
     </div>
 
-    <form method="POST" id="loanForm">
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="amount">
-                    Loan Amount (KES) <span class="required">*</span>
-                </label>
-                <input 
-                    type="number" 
-                    id="amount" 
-                    name="amount" 
-                    min="1000" 
-                    max="100000" 
-                    step="100"
-                    value="<?php echo isset($_POST['amount']) ? $_POST['amount'] : '10000'; ?>"
-                    required
-                    oninput="calculateLoan()"
-                >
-                <div class="help-text">Enter amount between 1,000 and 100,000</div>
+    <div class="form-container">
+        <?php if ($success): ?>
+            <div class="alert alert-success">
+                ✅ <?php echo htmlspecialchars($success); ?>
+                <div style="margin-top: 10px;"><a href="my-loans.php" style="color: #fff; text-decoration: underline;">Track Applications →</a></div>
             </div>
+        <?php endif; ?>
 
-            <div class="form-group">
-                <label for="duration_months">
-                    Repayment Period <span class="required">*</span>
-                </label>
-                <select 
-                    id="duration_months" 
-                    name="duration_months" 
-                    required
-                    onchange="calculateLoan()"
-                >
-                    <option value="">Select duration</option>
-                    <option value="1">1 Month</option>
-                    <option value="2">2 Months</option>
-                    <option value="3" selected>3 Months</option>
-                    <option value="6">6 Months</option>
-                    <option value="9">9 Months</option>
-                    <option value="12">12 Months</option>
-                    <option value="18">18 Months</option>
-                    <option value="24">24 Months</option>
-                </select>
-                <div class="help-text">Choose your repayment period</div>
-            </div>
+        <?php if ($error): ?>
+            <div class="alert alert-error">⚠️ <?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+
+        <div class="info-box">
+            <h4>📋 Tactical Guidelines</h4>
+            <p style="margin: 0; line-height: 1.8; font-size: 13px;">
+                • Limits: <strong>KES 500 — KES 10,000</strong><br>
+                • Interest: <strong><?php echo number_format($interest_rate, 2); ?>% Flat Rate</strong> per month<br>
+                • Repayment: Monthly installments via dashboard<br>
+                • <strong style="color: #f0a500;">Auto-Assignment:</strong> Your application will be automatically assigned to an available officer
+            </p>
         </div>
 
-        <div class="calculation-box" id="calculationBox">
-            <h4>Loan Calculation</h4>
-            <div class="calc-row">
-                <span>Principal Amount:</span>
-                <span class="calc-value" id="principalAmount">KES 10,000</span>
+        <form method="POST" id="loanForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="amount">Requested Amount (KES) <span class="required">*</span></label>
+                    <input type="number" id="amount" name="amount" min="500" max="10000" step="100" 
+                           value="<?php echo isset($_POST['amount']) ? $_POST['amount'] : '5000'; ?>" 
+                           required oninput="calculateLoan()">
+                    <div style="color:#444; font-size:11px; margin-top:5px;">Min: 500 | Max: 10,000</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration_months">Repayment Horizon <span class="required">*</span></label>
+                    <select id="duration_months" name="duration_months" required onchange="calculateLoan()">
+                        <?php 
+                        $durations = [1, 2, 3, 6, 9, 12, 18, 24];
+                        foreach($durations as $d){
+                            $sel = (isset($_POST['duration_months']) && $_POST['duration_months'] == $d) || (!isset($_POST['duration_months']) && $d == 3) ? 'selected' : '';
+                            echo "<option value='$d' $sel>$d Month".($d > 1 ? 's' : '')."</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
             </div>
-            <div class="calc-row">
-                <span>Interest (<?php echo $interest_rate; ?>%):</span>
-                <span class="calc-value" id="interestAmount">KES 1,500</span>
+
+            <div class="calculation-box">
+                <h4 style="color:#666; font-size:12px; text-transform:uppercase; margin-top:0;">Financial Summary</h4>
+                <div class="calc-row"><span>Principal</span><span id="principalAmount">KES 0</span></div>
+                <div class="calc-row"><span>Flat Interest (<?php echo $interest_rate; ?>%)</span><span id="interestAmount">KES 0</span></div>
+                <div class="calc-row"><span>Term Duration</span><span id="durationDisplay">3 Months</span></div>
+                <div class="calc-row"><span>Monthly Installment</span><span id="monthlyPayment" style="font-weight:700;">KES 0</span></div>
+                <div class="calc-row total"><span>Total Payable</span><span id="totalAmount">KES 0</span></div>
             </div>
-            <div class="calc-row">
-                <span>Duration:</span>
-                <span class="calc-value" id="durationDisplay">3 Months</span>
+
+            <div class="form-group full-width">
+                <label for="purpose">Operational Purpose <span class="required">*</span></label>
+                <textarea id="purpose" name="purpose" placeholder="Define the utility of these funds..." required><?php echo isset($_POST['purpose']) ? htmlspecialchars($_POST['purpose']) : ''; ?></textarea>
             </div>
-            <div class="calc-row total">
-                <span>Total Repayment:</span>
-                <span id="totalAmount">KES 11,500</span>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Submit Application</button>
+                <a href="dashboard.php" class="btn btn-secondary">Discard</a>
             </div>
-            <div class="calc-row">
-                <span>Monthly Installment:</span>
-                <span class="calc-value" id="monthlyPayment">KES 3,833</span>
-            </div>
-        </div>
+        </form>
+    </div>
 
-        <div class="form-group full-width">
-            <label for="purpose">
-                Loan Purpose <span class="required">*</span>
-            </label>
-            <textarea 
-                id="purpose" 
-                name="purpose" 
-                placeholder="Please describe how you intend to use this loan..."
-                required
-            ><?php echo isset($_POST['purpose']) ? htmlspecialchars($_POST['purpose']) : ''; ?></textarea>
-            <div class="help-text">Provide details about your loan purpose (e.g., business expansion, emergency, education)</div>
-        </div>
+    <script>
+    document.getElementById('sidebarToggle').addEventListener('click',()=>{
+        document.getElementById('sidebar').classList.toggle('active');
+    });
 
-        <div class="btn-group">
-            <button type="submit" class="btn btn-primary">Submit Application</button>
-            <a href="dashboard.php" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
-</div>
+    const interestRate = <?php echo $interest_rate; ?>;
 
-<script>
-// Sidebar toggle
-document.getElementById('sidebarToggle').addEventListener('click',()=>{
-    document.getElementById('sidebar').classList.toggle('active');
-    document.getElementById('dashboardMain').classList.toggle('shifted');
-});
+    function calculateLoan() {
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const duration = parseInt(document.getElementById('duration_months').value) || 0;
+        
+        // Simple Interest Calculation based on your PHP logic: (P * R * T) / 100
+        const interest = (amount * interestRate * duration) / 100;
+        const total = amount + interest;
+        const monthly = duration > 0 ? (total / duration) : 0;
+        
+        document.getElementById('principalAmount').textContent = 'KES ' + amount.toLocaleString();
+        document.getElementById('interestAmount').textContent = 'KES ' + interest.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('durationDisplay').textContent = duration + ' Month' + (duration !== 1 ? 's' : '');
+        document.getElementById('totalAmount').textContent = 'KES ' + total.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('monthlyPayment').textContent = 'KES ' + monthly.toLocaleString(undefined, {minimumFractionDigits: 2});
+    }
 
-const interestRate = <?php echo $interest_rate; ?>;
-
-function calculateLoan() {
-    const amount = parseFloat(document.getElementById('amount').value) || 0;
-    const duration = parseInt(document.getElementById('duration_months').value) || 3;
-    
-    // Calculate interest (simple interest: Principal × Rate × Time / 100)
-    const interest = (amount * interestRate * duration) / 100;
-    const total = amount + interest;
-    const monthly = total / duration;
-    
-    // Update display
-    document.getElementById('principalAmount').textContent = 'KES ' + amount.toLocaleString();
-    document.getElementById('interestAmount').textContent = 'KES ' + interest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('durationDisplay').textContent = duration + ' Month' + (duration > 1 ? 's' : '');
-    document.getElementById('totalAmount').textContent = 'KES ' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('monthlyPayment').textContent = 'KES ' + monthly.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-
-// Calculate on page load
-window.onload = function() {
-    calculateLoan();
-};
-</script>
-
+    // Initialize calculation on load
+    window.onload = calculateLoan;
+    </script>
 </main>
 </body>
 </html>

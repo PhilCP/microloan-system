@@ -1,8 +1,5 @@
 <?php
-/**
- * Database Connection Test
- * Run this file to verify your XAMPP setup
- */
+
 
 require_once 'config/db.php';
 ?>

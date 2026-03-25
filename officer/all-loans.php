@@ -1,11 +1,16 @@
 <?php
+-
 session_start();
 require_once '../includes/auth.php';
 requireRole('officer');
 require_once '../config/db.php';
 $user = getCurrentUser();
 
-// Stats
+if(!$user) die("Unauthorized access. Session expired.");
+
+/**
+ * Utility: Fetch aggregate stats for the Officer's specific portfolio
+ */
 function fetchValue($query, $default=0){
     global $conn;
     $res = $conn->query($query);
@@ -14,12 +19,13 @@ function fetchValue($query, $default=0){
     return $row ? ($row['total'] ?? $default) : $default;
 }
 
-$totalLoans = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE approved_by=".intval($user['id'])." OR approved_by IS NULL");
-$pendingLoans = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE status='pending'");
-$approvedLoans = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE approved_by=".intval($user['id'])." AND status='approved'");
+// Portfolio Analytics
+$totalLoans     = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE approved_by=".intval($user['id'])." OR (status='pending' AND approved_by IS NULL)");
+$pendingLoans   = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE status='pending'");
+$approvedLoans  = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE approved_by=".intval($user['id'])." AND status='approved'");
 $totalDisbursed = fetchValue("SELECT SUM(total_amount) AS total FROM loans WHERE approved_by=".intval($user['id'])." AND status='approved'");
 
-// Fetch all loans with remarks
+//Fetch applications requiring attention or already managed by this officer
 $loans = $conn->query("SELECT l.id, u.full_name AS borrower, l.total_amount, l.status, l.created_at, l.admin_remarks
                        FROM loans l
                        JOIN users u ON l.borrower_id = u.id
@@ -27,8 +33,8 @@ $loans = $conn->query("SELECT l.id, u.full_name AS borrower, l.total_amount, l.s
                        OR (l.status = 'pending' AND l.approved_by IS NULL)
                        ORDER BY l.created_at DESC");
 
-$pageTitle="All Loans";
-$role="officer";
+$pageTitle = "Loan Registry";
+$role = "officer";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,289 +44,213 @@ $role="officer";
 <title><?php echo $pageTitle; ?></title>
 <link rel="stylesheet" href="../assets/css/dashboard.css">
 <style>
-/* Table search bar styling */
-.table-search {
-    padding: 10px;
-    margin-bottom: 12px;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    background: #111;
-    color: #fff;
+/* Tactical Dashboard Overrides */
+body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
+
+/* Analytics Cards */
+.stat-card {
+    background: #0a0a0a;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #1a1a1a;
+    transition: 0.3s;
 }
-.table-search::placeholder {
-    color: #888;
+.stat-card:hover { border-color: #333; transform: translateY(-3px); }
+.stat-label { font-size: 10px; color: #555; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: 900; font-family: 'Courier New', monospace; }
+
+/* Registry Table */
+.registry-container {
+    background: #0a0a0a;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #1a1a1a;
+    margin-top: 30px;
 }
 
-/* Table styling */
-.table-container table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    background: #111;
-    color: #fff;
-}
-.table-container th, .table-container td {
-    padding: 12px;
+.search-bar {
+    background: #000;
     border: 1px solid #222;
-    text-align: left;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    width: 300px;
+    font-size: 13px;
+    transition: 0.3s;
 }
-.table-container th {
-    cursor: pointer;
-    background: #222;
-}
-.table-container tr:hover {
-    background: #222;
-}
+.search-bar:focus { border-color: #f0a500; outline: none; box-shadow: 0 0 10px rgba(240, 165, 0, 0.1); }
 
-/* Action buttons */
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th { 
+    text-align: left; 
+    padding: 15px; 
+    color: #444; 
+    font-size: 11px; 
+    text-transform: uppercase; 
+    border-bottom: 1px solid #1a1a1a; 
+    cursor: pointer;
+}
+th:hover { color: #f0a500; }
+td { padding: 18px 15px; border-bottom: 1px solid #0f0f0f; font-size: 14px; vertical-align: middle; }
+
+/* Operational Badges */
+.status-pill {
+    font-size: 10px;
+    font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.status-pending { background: rgba(234, 179, 8, 0.1); color: #eab308; }
+.status-approved { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.status-rejected { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* Interaction UI */
 .action-btn {
     padding: 6px 12px;
-    border: none;
     border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    margin-right: 5px;
-    transition: all 0.3s;
+    transition: 0.2s;
+    border: 1px solid transparent;
 }
+.btn-approve { background: rgba(34, 197, 94, 0.1); color: #22c55e; border-color: #22c55e; }
+.btn-approve:hover { background: #22c55e; color: #000; }
+.btn-reject { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: #ef4444; }
+.btn-reject:hover { background: #ef4444; color: #000; }
+.btn-notes { background: #1a1a1a; color: #f0a500; border-color: #333; }
 
-.action-btn.approve {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid #22c55e;
-}
-
-.action-btn.approve:hover {
-    background: rgba(34, 197, 94, 0.3);
-}
-
-.action-btn.reject {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid #ef4444;
-}
-
-.action-btn.reject:hover {
-    background: rgba(239, 68, 68, 0.3);
-}
-
-.remark-btn {
-    background: #333;
-    color: #f0a500;
-    border: 1px solid #f0a500;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.3s;
-}
-
-.remark-btn:hover {
-    background: rgba(240, 165, 0, 0.1);
-}
-
-/* MODAL CSS */
-.modal { 
-    display: none; 
-    position: fixed; 
-    z-index: 9999; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: rgba(0,0,0,0.85); 
-    backdrop-filter: blur(5px); 
-}
-
-.modal-content { 
-    background: #1a1a1a; 
-    margin: 10% auto; 
-    padding: 30px; 
-    border: 1px solid #f0a500; 
-    width: 90%;
-    max-width: 500px;
-    border-radius: 12px; 
-    color: white; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-}
-
-.modal-content h3 { 
-    color: #f0a500; 
-    margin-top: 0; 
-}
-
-.modal-content textarea { 
-    width: 100%; 
-    height: 100px; 
-    background: #111; 
-    border: 1px solid #333; 
-    color: white; 
-    padding: 12px; 
-    margin: 15px 0; 
-    border-radius: 6px; 
-    resize: none;
-    font-family: inherit;
-}
-
-.modal-content textarea:focus {
-    outline: none;
-    border-color: #f0a500;
-}
-
-.modal-actions { 
-    display: flex; 
-    gap: 10px; 
-    justify-content: flex-end; 
-}
-
-.modal-actions button { 
-    padding: 10px 20px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    border: none; 
-    font-weight: bold; 
-}
-
-.btn-confirm { 
-    background: #f0a500; 
-    color: #000; 
-}
-
-.btn-cancel { 
-    background: #333; 
-    color: #fff; 
-}
+/* Review Modal */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); }
+.modal-content { background: #0f0f0f; margin: 10% auto; padding: 35px; border: 1px solid #222; width: 450px; border-radius: 12px; }
+.modal-title { color: #f0a500; font-weight: 900; text-transform: uppercase; margin-bottom: 20px; display: block; }
+textarea { width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 15px; border-radius: 8px; resize: none; margin-bottom: 20px; }
 </style>
 </head>
 <body>
 
-<!-- Remarks Modal -->
 <div id="remarksModal" class="modal">
     <div class="modal-content">
-        <h3>Loan Review Remarks</h3>
-        <p id="modalLoanText">Applying action to Loan #</p>
-        <textarea id="officerRemarks" placeholder="Enter reason for approval or rejection... (Optional)"></textarea>
-        <div class="modal-actions">
-            <button id="cancelModal" class="btn-cancel">Cancel</button> 
-            <button id="confirmAction" class="btn-confirm">Confirm Action</button>
+        <span class="modal-title" id="modalTitle">Application Review</span>
+        <p id="modalLoanRef" style="font-size: 12px; color: #444; margin-bottom: 15px; font-family: monospace;"></p>
+        <textarea id="officerRemarks" rows="4" placeholder="Enter justification or internal notes..."></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button id="cancelModal" style="background:transparent; color:#555; border:none; cursor:pointer; font-weight:800; font-size:12px;">DISCARD</button> 
+            <button id="confirmAction" style="background:#f0a500; color:#000; padding:10px 25px; border:none; border-radius:6px; font-weight:900; cursor:pointer;">CONFIRM DECISION</button>
         </div>
     </div>
 </div>
 
 <?php include '../includes/sidebar.php'; ?>
-<main class="dashboard-main" id="dashboardMain">
-<?php include '../includes/dashboard_header.php'; ?>
 
-<div class="welcome">
-    <h2>📊 All Loans</h2>
-    <p style="color:#999;">Manage and review all loan applications</p>
-</div>
+<main class="dashboard-main" id="dashboardMain" style="margin-left: 240px; padding: 30px;">
+    <?php include '../includes/dashboard_header.php'; ?>
 
-<div class="dashboard-grid">
-    <div class="card"><div class="card-title">Total Loans</div><div class="card-value"><?php echo $totalLoans; ?></div></div>
-    <div class="card"><div class="card-title">Approved</div><div class="card-value"><?php echo $approvedLoans; ?></div></div>
-    <div class="card"><div class="card-title">Pending</div><div class="card-value"><?php echo $pendingLoans; ?></div></div>
-    <div class="card"><div class="card-title">Total Disbursed</div><div class="card-value">KES <?php echo number_format($totalDisbursed); ?></div></div>
-</div>
+    <div class="page-header" style="margin-bottom: 40px;">
+        <h2 style="font-weight:900; text-transform:uppercase; letter-spacing:1px;">Loan Application Registry</h2>
+        <p style="color:#444;">Review pending requests and audit historical disbursements.</p>
+    </div>
 
-<div class="table-container">
-    <h3>All Loan Applications</h3>
-    <input type="text" id="loanSearch" placeholder="Search loans..." class="table-search">
-    <table id="loansTable">
-        <thead>
-            <tr>
-                <th onclick="sortTable('loansTable',0)">ID</th>
-                <th onclick="sortTable('loansTable',1)">Borrower</th>
-                <th onclick="sortTable('loansTable',2)">Amount</th>
-                <th onclick="sortTable('loansTable',3)">Status</th>
-                <th onclick="sortTable('loansTable',4)">Created</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php while($l=$loans->fetch_assoc()): ?>
-           <tr id="loanRow-<?php echo $l['id']; ?>">
-                <td><?php echo $l['id']; ?></td>
-                <td><?php echo htmlspecialchars($l['borrower']); ?></td>
-                <td>KES <?php echo number_format($l['total_amount']); ?></td>
-                <td class="loan-status"><?php echo strtoupper($l['status']); ?></td>
-                <td><?php echo date('d M Y', strtotime($l['created_at'])); ?></td>
-                <td>
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <?php if($l['status']=='pending'): ?>
-                            <button class="action-btn approve" data-id="<?php echo $l['id']; ?>" data-action="approve" title="Approve">Approve</button>
-                            <button class="action-btn reject" data-id="<?php echo $l['id']; ?>" data-action="reject" title="Reject">Reject</button>
-                        <?php endif; ?>
-                        
-                        <button class="remark-btn" 
-                                data-id="<?php echo $l['id']; ?>" 
-                                data-remarks="<?php echo htmlspecialchars($l['admin_remarks'] ?? ''); ?>"
-                                title="View/Add Remarks">
-                            💬 Notes
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        <?php endwhile; ?>
-        </tbody>
-    </table>
-</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="stat-card">
+            <div class="stat-label">Assigned Portfolio</div>
+            <div class="stat-value"><?php echo $totalLoans; ?></div>
+        </div>
+        <div class="stat-card" style="border-left: 3px solid #22c55e;">
+            <div class="stat-label">Verified Approvals</div>
+            <div class="stat-value"><?php echo $approvedLoans; ?></div>
+        </div>
+        <div class="stat-card" style="border-left: 3px solid #eab308;">
+            <div class="stat-label">Awaiting Review</div>
+            <div class="stat-value"><?php echo $pendingLoans; ?></div>
+        </div>
+        <div class="stat-card" style="border-left: 3px solid #f0a500;">
+            <div class="stat-label">Capital Disbursed</div>
+            <div class="stat-value">KES <?php echo number_format($totalDisbursed); ?></div>
+        </div>
+    </div>
+
+    <div class="registry-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+            <h3 style="margin:0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">Active Ledger</h3>
+            <input type="text" id="loanSearch" placeholder="Search reference or borrower..." class="search-bar">
+        </div>
+        
+        <table id="loansTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">ID</th>
+                    <th onclick="sortTable(1)">Borrower Name</th>
+                    <th onclick="sortTable(2)">Capital Request</th>
+                    <th onclick="sortTable(3)">Status</th>
+                    <th onclick="sortTable(4)">Filed Date</th>
+                    <th>Operations</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php while($l=$loans->fetch_assoc()): ?>
+               <tr id="loanRow-<?php echo $l['id']; ?>">
+                    <td style="font-family:monospace; color:#444;">#<?php echo str_pad($l['id'], 4, '0', STR_PAD_LEFT); ?></td>
+                    <td><strong style="color:#ddd;"><?php echo htmlspecialchars($l['borrower']); ?></strong></td>
+                    <td style="color:#22c55e; font-weight:800;">KES <?php echo number_format($l['total_amount']); ?></td>
+                    <td><span class="status-pill status-<?php echo strtolower($l['status']); ?>"><?php echo $l['status']; ?></span></td>
+                    <td style="color:#444; font-size:12px;"><?php echo date('d M Y', strtotime($l['created_at'])); ?></td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <?php if($l['status']=='pending'): ?>
+                                <button class="action-btn btn-approve ui-trigger" data-id="<?php echo $l['id']; ?>" data-action="approve">Approve</button>
+                                <button class="action-btn btn-reject ui-trigger" data-id="<?php echo $l['id']; ?>" data-action="reject">Reject</button>
+                            <?php endif; ?>
+                            <button class="action-btn btn-notes ui-trigger" data-id="<?php echo $l['id']; ?>" data-action="remark_only" data-remarks="<?php echo htmlspecialchars($l['admin_remarks'] ?? ''); ?>">Audit Notes</button>
+                        </div>
+                    </td>
+                </tr>
+            <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+
 
 <script>
-// Sidebar toggle
-document.getElementById('sidebarToggle').addEventListener('click',()=>{
-    document.getElementById('sidebar').classList.toggle('active');
-    document.getElementById('dashboardMain').classList.toggle('shifted');
-});
-
-// Modal Logic via Event Delegation
 let currentLoanId = null;
 let currentAction = null;
 const modal = document.getElementById('remarksModal');
 const remarksInput = document.getElementById('officerRemarks');
-const table = document.getElementById('loansTable');
 
-if (table) {
-    table.addEventListener('click', function(e) {
-        const actionBtn = e.target.closest('.action-btn');
-        const remarkBtn = e.target.closest('.remark-btn');
+// Tactical Event Delegation
+document.querySelector('#loansTable').addEventListener('click', function(e) {
+    const trigger = e.target.closest('.ui-trigger');
+    if (!trigger) return;
 
-        if (actionBtn) {
-            currentLoanId = actionBtn.dataset.id;
-            currentAction = actionBtn.dataset.action;
-            const existingRemarks = actionBtn.closest('tr').querySelector('.remark-btn').dataset.remarks;
+    currentLoanId = trigger.dataset.id;
+    currentAction = trigger.dataset.action;
+    
+    // UI Feedback Mapping
+    const titles = {
+        'approve': 'Finalize Approval',
+        'reject': 'Confirm Rejection',
+        'remark_only': 'Internal Ledger Notes'
+    };
 
-            document.getElementById('modalLoanText').textContent =
-                `Action: ${currentAction.toUpperCase()} | Loan #${currentLoanId}`;
-            remarksInput.value = existingRemarks;
-            modal.style.display = 'block';
-        } 
-        else if (remarkBtn) {
-            currentLoanId = remarkBtn.dataset.id;
-            currentAction = 'remark_only';
+    document.getElementById('modalTitle').textContent = titles[currentAction];
+    document.getElementById('modalLoanRef').textContent = `REFERENCE ID: #LN-${currentLoanId.padStart(4, '0')}`;
+    remarksInput.value = trigger.dataset.remarks || '';
+    modal.style.display = 'block';
+});
 
-            document.getElementById('modalLoanText').textContent =
-                `Internal Notes | Loan #${currentLoanId}`;
-            remarksInput.value = remarkBtn.dataset.remarks || '';
-            modal.style.display = 'block';
-        }
-    });
-}
-
-// Close Modal
 document.getElementById('cancelModal').onclick = () => modal.style.display = 'none';
-window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
-// Submit Action
 document.getElementById('confirmAction').onclick = function() {
     const btn = this;
     const remarks = remarksInput.value;
     btn.disabled = true;
-    const originalText = btn.textContent;
-    btn.textContent = 'Processing...';
+    btn.textContent = 'COMMITTING...';
 
+    // XHR to logical controller
     fetch('loan_action.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -332,54 +262,57 @@ document.getElementById('confirmAction').onclick = function() {
             if(currentAction !== 'remark_only') {
                 location.reload();
             } else {
-                const btnUpdate = document.querySelector(`#loanRow-${currentLoanId} .remark-btn`);
-                if(btnUpdate) btnUpdate.dataset.remarks = remarks;
-                alert('Notes updated successfully');
                 modal.style.display = 'none';
+                // Hot-update the remark data in the DOM
+                document.querySelector(`#loanRow-${currentLoanId} .btn-notes`).dataset.remarks = remarks;
             }
         } else {
-            alert('Error: ' + data.error);
+            alert('SYSTEM REJECTION: ' + data.error);
         }
-    })
-    .catch(err => {
-        console.error(err);
-        alert('Network error. Check console.');
     })
     .finally(() => {
         btn.disabled = false;
-        btn.textContent = originalText;
+        btn.textContent = 'CONFIRM DECISION';
     });
 };
 
-// Table search
-function tableSearch(inputId,tableId){
-    const filter=document.getElementById(inputId).value.toUpperCase();
-    const trs=document.getElementById(tableId).tBodies[0].rows;
-    for(let tr of trs){
-        let show=false;
-        for(let td of tr.cells){
-            if(td.textContent.toUpperCase().includes(filter)){show=true;break;}
+// Search Logic
+document.getElementById('loanSearch').onkeyup = function() {
+    let filter = this.value.toUpperCase();
+    let rows = document.querySelectorAll('#loansTable tbody tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toUpperCase().includes(filter) ? '' : 'none';
+    });
+};
+
+// Column Sort Logic
+function sortTable(n) {
+    const table = document.getElementById("loansTable");
+    let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+    switching = true;
+    dir = "asc";
+    while (switching) {
+        switching = false;
+        rows = table.rows;
+        for (i = 1; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("TD")[n];
+            y = rows[i + 1].getElementsByTagName("TD")[n];
+            if (dir == "asc") {
+                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+            } else if (dir == "desc") {
+                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+            }
         }
-        tr.style.display=show?'':'none';
+        if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            switchcount ++;
+        } else {
+            if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
+        }
     }
 }
-document.getElementById('loanSearch').addEventListener('keyup',()=>tableSearch('loanSearch','loansTable'));
-
-// Table sort
-function sortTable(tableId,col){
-    const table=document.getElementById(tableId);
-    let rows=Array.from(table.tBodies[0].rows);
-    let asc=table.getAttribute('data-sort')!=='asc';
-    rows.sort((a,b)=>{
-        let x=a.cells[col].innerText.toLowerCase().replace(/[^0-9.]/g,'');
-        let y=b.cells[col].innerText.toLowerCase().replace(/[^0-9.]/g,'');
-        return (parseFloat(x)>parseFloat(y)?1:-1)*(asc?1:-1);
-    });
-    rows.forEach(r=>table.tBodies[0].appendChild(r));
-    table.setAttribute('data-sort',asc?'asc':'desc');
-}
 </script>
-
-</main>
 </body>
 </html>

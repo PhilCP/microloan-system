@@ -1,8 +1,5 @@
 <?php
-/**
- * Record Repayment Handler
- * Processes loan repayment submissions from loan officers
- */
+
 
 session_start();
 require_once '../includes/auth.php';

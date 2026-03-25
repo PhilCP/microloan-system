@@ -1,14 +1,14 @@
 <?php
 // 1. Connection Settings (XAMPP on Mac defaults)
 $host = '127.0.0.1';
-$db   = 'microloan_system'; // Matches your SQL file
+$db   = 'microloan_system';
 $user = 'root';
 $pass = ''; 
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "<h2>✅ Connected to Microloan System</h2>";
+    echo "<h2> Connected to Microloan System</h2>";
 
     // 2. Display Users based on your actual columns
     echo "<h3>User Registry</h3>";
@@ -31,7 +31,7 @@ try {
 
     // 3. Simple Hash Tester
     echo "<h3>Password Hash Test</h3>";
-    $test_pass = 'admin123'; // The password mentioned in your SQL comments
+    $test_pass = 'admin123';
     $sample_hash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
     
     if (password_verify($test_pass, $sample_hash)) {

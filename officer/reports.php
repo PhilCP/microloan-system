@@ -9,9 +9,9 @@ requireRole('officer');
 require_once '../config/db.php';
 
 $user = getCurrentUser();
-$role = $user['role'] ?? 'officer'; // Fixes the "Undefined variable $role" error
+$role = $user['role'] ?? 'officer'; 
 
-// --- 1. Fetch Summary Stats ---
+// Fetch Summary Stats
 $statsQuery = "SELECT 
     (SELECT SUM(amount) FROM loans WHERE status='approved' OR status='completed') as total_disbursed,
     (SELECT SUM(amount_paid) FROM repayments) as total_recovered,
@@ -24,7 +24,7 @@ $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
 $outstanding = $totalDisbursed - $totalRecovered;
 
-// --- 2. Fetch Detailed Transactions (including Remaining Balance) ---
+//  Fetch Detailed Transactions (including Remaining Balance)
 $repaymentsQuery = "SELECT r.*, u.full_name, l.remaining_balance 
                     FROM repayments r
                     JOIN loans l ON r.loan_id = l.id
@@ -45,7 +45,7 @@ $pageTitle = "Financial Reports";
         /* Black Ops Specific Report Styles */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -105,6 +105,12 @@ $pageTitle = "Financial Reports";
             cursor: pointer;
         }
         .btn-print:hover { background: #f0a500; color: #000; }
+
+        /* Ensure Table is scrollable on small screens to prevent overlap */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
         
         @media print {
             .sidebar, .btn-print, .header { display: none !important; }
@@ -112,13 +118,22 @@ $pageTitle = "Financial Reports";
             body { background: white !important; color: black !important; }
             .stat-card, .report-section { border: 1px solid #ccc !important; }
         }
+
+        /* Mobile Breakpoint */
+        @media (max-width: 992px) {
+            .dashboard-main {
+                margin-left: 0 !important;
+                padding: 20px !important;
+                padding-top: 80px !important;
+            }
+        }
     </style>
 </head>
-<body style="background: #000; color: #fff;">
+<body style="background: #000;">
 
     <?php include '../includes/sidebar.php'; ?>
 
-    <main class="dashboard-main" id="dashboardMain">
+    <main class="dashboard-main" id="dashboardMain" style="margin-left: 240px; transition: 0.3s; padding: 30px; color: #fff;">
         <?php include '../includes/dashboard_header.php'; ?>
 
         <div class="welcome" style="margin-bottom: 30px;">
@@ -197,7 +212,6 @@ $pageTitle = "Financial Reports";
     <script>
         document.getElementById('sidebarToggle').addEventListener('click',()=>{
             document.getElementById('sidebar').classList.toggle('active');
-            document.getElementById('dashboardMain').classList.toggle('shifted');
         });
     </script>
 </body>
