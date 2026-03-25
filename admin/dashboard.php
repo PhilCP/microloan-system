@@ -1,8 +1,5 @@
 <?php
-/**
- * System Command Center - Admin Level 3
- * Master Controller: Tracks Personnel, Financial Trends, and Detailed Loan Volumes.
- */
+
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -26,13 +23,13 @@ function fetchValue($query, $default = 0) {
     return $row ? ($row['total'] ?? $default) : $default;
 }
 
-// --- 1. Macro-Level Statistics ---
+// 1. Macro-Level Statistics
 $totalUsers       = fetchValue("SELECT COUNT(*) AS total FROM users");
 $totalVolume      = fetchValue("SELECT SUM(total_amount) AS total FROM loans WHERE status IN ('approved', 'completed')");
 $totalRecovered   = fetchValue("SELECT SUM(amount_paid) AS total FROM repayments");
 $pendingApprovals = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE status='pending'");
 
-// --- 2. Loan Portfolio Counts (For Doughnut Chart) ---
+// 2. Loan Portfolio Counts (For Doughnut Chart)
 $composition = [
     'approved'  => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='approved'"),
     'completed' => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='completed'"),
@@ -40,7 +37,7 @@ $composition = [
     'rejected'  => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='rejected'")
 ];
 
-// --- 3. Financial Volume Breakdown (Money tied to each status) ---
+//  3. Financial Volume Breakdown (Money tied to each status)
 $volumes = [
     'pending'   => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='pending'"),
     'approved'  => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='approved'"),
@@ -48,7 +45,7 @@ $volumes = [
     'rejected'  => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='rejected'")
 ];
 
-// --- 4. 6-Month Financial Liquidity Trends ---
+// 4. 6-Month Financial Liquidity Trends 
 $trends = [];
 for ($i = 5; $i >= 0; $i--) {
     $month = date('Y-m', strtotime("-$i month"));
@@ -60,7 +57,7 @@ for ($i = 5; $i >= 0; $i--) {
     $trends[] = ['label' => $label, 'disbursed' => $disbursed, 'recovered' => $recovered];
 }
 
-// --- 5. Audit Feed ---
+// 5. Audit Feed 
 $recentActivity = $conn->query("SELECT a.*, u.full_name FROM activity_logs a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 8");
 
 $pageTitle = "System Command Center";

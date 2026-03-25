@@ -1,8 +1,5 @@
 <?php
-/**
- * System Audit Trail
- * Surveillance module for monitoring administrative and operational integrity.
- */
+
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -11,7 +8,7 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-// --- 1. Fetch Logs with User Details (Limited to 100 for performance) ---
+// 1. Fetch Logs with User Details (Limited to 100 for performance)
 $logsQuery = "SELECT al.*, u.full_name, u.role as user_role 
               FROM activity_logs al 
               JOIN users u ON al.user_id = u.id 

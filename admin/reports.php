@@ -1,8 +1,5 @@
 <?php
-/**
- * Global Intelligence Report - Admin Master Financial Dashboard
- * Comprehensive oversight of capital flow, recovery, and system-wide risk.
- */
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -15,7 +12,7 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-// --- 1. Tactical Search & Ledger Filtering ---
+// 1. Tactical Search & Ledger Filtering
 $search = $_GET['search'] ?? '';
 
 // Build the ledger query with dynamic filtering

@@ -45,13 +45,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($stmt->execute()) {
             $loan_id = $stmt->insert_id;
             
-            // Log activity
+            // ========================================
+            // HYBRID AUTO-ASSIGNMENT SYSTEM
+            // ========================================
+            // Find officer with least pending loans (Round Robin)
+            $officerQuery = "SELECT u.id, u.full_name, COUNT(l.id) as loan_count 
+                            FROM users u 
+                            LEFT JOIN loans l ON u.id = l.approved_by AND l.status='pending'
+                            WHERE u.role='officer'
+                            GROUP BY u.id, u.full_name
+                            ORDER BY loan_count ASC, u.id ASC
+                            LIMIT 1";
+            
+            $officerResult = $conn->query($officerQuery);
+            
+            if ($officerResult && $officerResult->num_rows > 0) {
+                $officer = $officerResult->fetch_assoc();
+                
+                // Assign loan to officer with least pending loans
+                $assignStmt = $conn->prepare("UPDATE loans SET approved_by = ? WHERE id = ?");
+                $assignStmt->bind_param("ii", $officer['id'], $loan_id);
+                
+                if ($assignStmt->execute()) {
+                    // Log auto-assignment for tracking
+                    $assignLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                    $assignAction = "System auto-assigned loan #{$loan_id} to officer {$officer['full_name']} (ID: {$officer['id']})";
+                    $systemUserId = 1; // System user ID (or use borrower's ID)
+                    $assignLog->bind_param("is", $systemUserId, $assignAction);
+                    $assignLog->execute();
+                    
+                    $success = "Your loan application has been submitted and assigned to an officer for review! Application ID: #" . $loan_id;
+                } else {
+                    // Assignment failed, but loan was created
+                    $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
+                }
+                
+                $assignStmt->close();
+            } else {
+                // No officers available - leave unassigned for admin to manually assign
+                $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
+                
+                // Log that no officers were available
+                $noOfficerLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                $noOfficerAction = "Loan #{$loan_id} submitted but no officers available for auto-assignment";
+                $noOfficerLog->bind_param("is", $user['id'], $noOfficerAction);
+                $noOfficerLog->execute();
+            }
+            // ========================================
+            
+            // Log borrower's application activity
             $log_stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
             $log_action = "Applied for loan of KES " . number_format($amount, 2);
             $log_stmt->bind_param("is", $user['id'], $log_action);
             $log_stmt->execute();
-            
-            $success = "Your loan application has been submitted successfully! Application ID: #" . $loan_id;
             
             // Clear post to reset form
             $_POST = array();
@@ -157,7 +203,8 @@ input:focus, select:focus, textarea:focus { border-color: #f0a500; outline: none
             <p style="margin: 0; line-height: 1.8; font-size: 13px;">
                 • Limits: <strong>KES 500 — KES 10,000</strong><br>
                 • Interest: <strong><?php echo number_format($interest_rate, 2); ?>% Flat Rate</strong> per month<br>
-                • Repayment: Monthly installments via dashboard
+                • Repayment: Monthly installments via dashboard<br>
+                • <strong style="color: #f0a500;">Auto-Assignment:</strong> Your application will be automatically assigned to an available officer
             </p>
         </div>
 

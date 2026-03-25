@@ -6,7 +6,7 @@ require_once '../config/db.php';
 
 $user = getCurrentUser();
 
-// --- Fetch System Summary for Header ---
+//Fetch System Summary for Header
 $statsQuery = "SELECT 
     (SELECT SUM(amount) FROM loans WHERE status IN ('approved', 'completed')) as total_disbursed,
     (SELECT SUM(amount_paid) FROM repayments) as total_recovered";
@@ -16,7 +16,7 @@ $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
 $outstanding = $totalDisbursed - $totalRecovered;
 
-// --- Fetch All Repayments for the History Table ---
+//Fetch All Repayments for the History Table
 $repaymentsQuery = "SELECT r.*, u.full_name, l.total_amount as loan_total, l.remaining_balance
                     FROM repayments r
                     JOIN loans l ON r.loan_id = l.id

@@ -1,8 +1,5 @@
 <?php
-/**
- * Approved Loans & Repayments Management
- * Officer-side interface for tracking active debt and logging capital recovery.
- */
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);

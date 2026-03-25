@@ -1,8 +1,5 @@
 <?php
-/**
- * All Loans Command Center
- * Central interface for Loan Officers to review, approve, and audit applications.
- */
+-
 session_start();
 require_once '../includes/auth.php';
 requireRole('officer');
@@ -28,7 +25,7 @@ $pendingLoans   = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE status='
 $approvedLoans  = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE approved_by=".intval($user['id'])." AND status='approved'");
 $totalDisbursed = fetchValue("SELECT SUM(total_amount) AS total FROM loans WHERE approved_by=".intval($user['id'])." AND status='approved'");
 
-// Main Query: Fetch applications requiring attention or already managed by this officer
+//Fetch applications requiring attention or already managed by this officer
 $loans = $conn->query("SELECT l.id, u.full_name AS borrower, l.total_amount, l.status, l.created_at, l.admin_remarks
                        FROM loans l
                        JOIN users u ON l.borrower_id = u.id

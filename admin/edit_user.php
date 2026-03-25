@@ -1,8 +1,5 @@
 <?php
-/**
- * Personnel Modification Module
- * High-clearance interface for updating agent credentials and access hierarchies.
- */
+
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -12,7 +9,7 @@ $user = getCurrentUser();
 $role = "admin";
 $message = "";
 
-// --- 1. Target Acquisition ---
+// 1. Target Acquisition
 if (!isset($_GET['id'])) {
     header("Location: users.php");
     exit;
@@ -28,7 +25,7 @@ if (!$target_user) {
     die("CRITICAL ERROR: Personnel record not found in system archives.");
 }
 
-// --- 2. Modification Logic ---
+// 2. Modification Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
@@ -55,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: users.php?msg=UpdateSuccess");
         exit;
     } else {
-        $message = "<div class='alert error'>❌ MODIFICATION FAILED: Database conflict or connectivity loss.</div>";
+        $message = "<div class='alert error'> MODIFICATION FAILED: Database conflict or connectivity loss.</div>";
     }
 }
 

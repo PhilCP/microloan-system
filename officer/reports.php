@@ -9,9 +9,9 @@ requireRole('officer');
 require_once '../config/db.php';
 
 $user = getCurrentUser();
-$role = $user['role'] ?? 'officer'; // Fixes the "Undefined variable $role" error
+$role = $user['role'] ?? 'officer'; 
 
-// --- 1. Fetch Summary Stats ---
+// Fetch Summary Stats
 $statsQuery = "SELECT 
     (SELECT SUM(amount) FROM loans WHERE status='approved' OR status='completed') as total_disbursed,
     (SELECT SUM(amount_paid) FROM repayments) as total_recovered,
@@ -24,7 +24,7 @@ $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
 $outstanding = $totalDisbursed - $totalRecovered;
 
-// --- 2. Fetch Detailed Transactions (including Remaining Balance) ---
+//  Fetch Detailed Transactions (including Remaining Balance)
 $repaymentsQuery = "SELECT r.*, u.full_name, l.remaining_balance 
                     FROM repayments r
                     JOIN loans l ON r.loan_id = l.id

@@ -435,7 +435,7 @@ $role = "officer";
         <?php endwhile; ?>
     <?php else: ?>
         <div class="empty-state">
-            <div class="empty-state-icon">✅</div>
+            <div class="empty-state-icon"></div>
             <h3 style="color: #ddd;">All Caught Up!</h3>
             <p>No pending loan applications at the moment.</p>
         </div>

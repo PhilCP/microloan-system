@@ -110,7 +110,7 @@ th { color: #f0a500; text-transform: uppercase; font-size: 11px; letter-spacing:
     <?php include '../includes/dashboard_header.php'; ?>
 
     <div class="welcome" style="margin-bottom: 30px;">
-        <h2 style="font-weight: 800;">👔 Officer Command</h2>
+        <h2 style="font-weight: 800;"> Officer Command</h2>
         <p style="color:#666;">Operational overview of loan cycles and liquidity.</p>
     </div>
 
@@ -134,7 +134,7 @@ th { color: #f0a500; text-transform: uppercase; font-size: 11px; letter-spacing:
     </div>
 
     <div class="quick-actions">
-        <h3 style="font-size: 14px; color: #f0a500; text-transform: uppercase; margin-top: 40px; letter-spacing: 1px;">⚡ Tactical Actions</h3>
+        <h3 style="font-size: 14px; color: #f0a500; text-transform: uppercase; margin-top: 40px; letter-spacing: 1px;"> Tactical Actions</h3>
         <div class="action-grid">
             <a href="pending-loans.php" class="action-card">
                 <div class="action-icon">⏳</div>

@@ -16,33 +16,44 @@ $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
+    $phone = trim($_POST['phone'] ?? ''); // Add phone field
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $target_role = $_POST['role'];
 
-    // Identity Collision Check
-    $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
-    $check->bind_param("s", $email);
-    $check->execute();
-    
-    if ($check->get_result()->num_rows > 0) {
-        $message = "<div class='alert error'>⚠️ ACCESS DENIED: Identity already exists in database.</div>";
+    // Validation
+    if (empty($full_name) || empty($email) || empty($_POST['password'])) {
+        $message = "<div class='alert error'>⚠️ All fields are required.</div>";
     } else {
-        // SQL Injection protected via Prepared Statements
-        $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, role, is_active) VALUES (?, ?, ?, ?, 1)");
-        $stmt->bind_param("ssss", $full_name, $email, $password, $target_role);
+        // Identity Collision Check
+        $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $check->bind_param("s", $email);
+        $check->execute();
         
-        if ($stmt->execute()) {
-            // Log the deployment for audit trails
-            $logAction = "ADMIN [{$user['id']}] Deployed new user: $full_name ($target_role)";
-            $logStmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
-            $logStmt->bind_param("is", $user['id'], $logAction);
-            $logStmt->execute();
-            
-            header("Location: users.php?msg=UserCreated");
-            exit;
+        if ($check->get_result()->num_rows > 0) {
+            $message = "<div class='alert error'>⚠️ ACCESS DENIED: Email already exists in database.</div>";
         } else {
-            $message = "<div class='alert error'>❌ CRITICAL: Deployment sequence failed. System rejection.</div>";
+            // SQL Injection protected via Prepared Statements
+            $stmt = $conn->prepare("INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssss", $full_name, $email, $phone, $password, $target_role);
+            
+            if ($stmt->execute()) {
+                $newUserId = $conn->insert_id;
+                
+                // Log the deployment for audit trails
+                $logAction = "Admin created new user: $full_name ($target_role) - ID: $newUserId";
+                $logStmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                $logStmt->bind_param("is", $user['id'], $logAction);
+                $logStmt->execute();
+                
+                // Redirect with success message
+                $_SESSION['success_message'] = "✅ User created successfully! ID: #$newUserId";
+                header("Location: users.php");
+                exit();
+            } else {
+                $message = "<div class='alert error'>❌ CRITICAL: Deployment sequence failed. Error: " . $conn->error . "</div>";
+            }
         }
+        $check->close();
     }
 }
 
@@ -91,8 +102,8 @@ $pageTitle = "Deploy Personnel";
 
         label { 
             display: block; 
-            color: #444; 
-            font-size: 10px; 
+            color: #888; 
+            font-size: 11px; 
             text-transform: uppercase; 
             margin-bottom: 10px; 
             letter-spacing: 1.5px;
@@ -210,6 +221,11 @@ $pageTitle = "Deploy Personnel";
                     </div>
 
                     <div class="form-group">
+                        <label>Phone Number (Optional)</label>
+                        <input type="text" name="phone" placeholder="+254 700 000 000">
+                    </div>
+
+                    <div class="form-group">
                         <label>Security Key (Password)</label>
                         <div class="pass-wrapper">
                             <input type="password" name="password" id="passInput" required placeholder="••••••••">
@@ -233,8 +249,6 @@ $pageTitle = "Deploy Personnel";
             <a href="users.php" class="back-link">← Cancel and Exit to Registry</a>
         </div>
     </main>
-
-    
 
     <script>
         /**

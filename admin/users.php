@@ -1,8 +1,5 @@
 <?php
-/**
- * Personnel Registry - Admin Master Control
- * Handles user lifecycle, access suspension, and personnel audits.
- */
+/
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -11,7 +8,7 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-// --- 1. Tactical Access Control (Lock/Unlock) ---
+//  1. Tactical Access Control (Lock/Unlock)
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $targetId = intval($_GET['id']);
     $action = $_GET['action'];
@@ -35,7 +32,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     exit;
 }
 
-// --- 2. Registry Filtration Logic ---
+// 2. Registry Filtration Logic
 $search = $_GET['search'] ?? '';
 $filterRole = $_GET['role'] ?? '';
 
