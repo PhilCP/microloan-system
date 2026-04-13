@@ -117,20 +117,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         input:focus { outline: none; border-color: #fff; }
 
-        .btn-submit { 
-            width: 100%; 
-            padding: 14px; 
-            background: #fff; 
-            color: #000; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 700;
+       .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: #f0a500;
+            color: #000;
+            border: none;
+            border-radius: 8px;
             font-size: 16px;
-            transition: transform 0.2s, background 0.2s;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
         }
-
-        .btn-submit:hover { background: #e6e6e6; transform: translateY(-2px); }
+        .btn-submit:hover { background: #ffc107; transform: translateY(-2px); }
 
         /* Demo Credentials Section */
         .demo-credentials { 
@@ -153,6 +153,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
             font-size: 12px;
         }
+        .footer-link { text-align: center; font-size: 14px; color: #666; }
+        .footer-link a { color: #f0a500; text-decoration: none; font-weight: 600; }
+        .divider { text-align: center; margin: 28px 0; border-bottom: 1px solid #222; line-height: 0.1em; }
+        .divider span { background: #111; padding: 0 15px; color: #444; font-size: 12px; }
+        .footer-link a:hover { text-decoration: underline; }
 
         .btn-fill:hover { border-color: #fff; }
     </style>
@@ -180,6 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="password" name="password" id="password" placeholder="••••••••" required>
             
             <button type="submit" class="btn-submit">Sign In</button>
+            <div class="divider"><span>FORGOT YOUR PASSWORD?</span></div>
+            <div class="footer-link">
+             <a href="forgot_password.php">Reset It</a>
+        </div>
         </form>
 
         <!-- <div class="demo-credentials">
