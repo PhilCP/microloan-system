@@ -1,5 +1,5 @@
 <?php
-// 1. Connection Settings (XAMPP on Mac defaults)
+//Connection Settings (XAMPP on Mac defaults)
 $host = '127.0.0.1';
 $db   = 'microloan_system';
 $user = 'root';
@@ -10,7 +10,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     echo "<h2> Connected to Microloan System</h2>";
 
-    // 2. Display Users based on your actual columns
+    //Display Users based on your actual columns
     echo "<h3>User Registry</h3>";
     $stmt = $pdo->query("SELECT id, full_name, email, password, role FROM users");
     
@@ -29,7 +29,7 @@ try {
     }
     echo "</table>";
 
-    // 3. Simple Hash Tester
+    // Hash Tester
     echo "<h3>Password Hash Test</h3>";
     $test_pass = 'admin123';
     $sample_hash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
@@ -41,7 +41,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    echo "<h2 style='color: red;'>❌ Connection failed</h2>";
+    echo "<h2 style='color: red;'> Connection failed</h2>";
     echo "Error: " . $e->getMessage();
 }
 ?>

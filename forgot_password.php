@@ -1,5 +1,4 @@
 <?php
-// forgot_password.php
 session_start();
 require_once 'config/db.php';
 
@@ -96,97 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - Microloan System</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #000;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .top-nav { position: absolute; top: 20px; left: 40px; }
-        .nav-btn {
-            color: #999;
-            text-decoration: none;
-            font-size: 14px;
-            border: 1px solid #333;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s;
-        }
-        .nav-btn:hover { color: #fff; border-color: #fff; }
-
-        .container { width: 100%; max-width: 440px; }
-
-        .logo-section { text-align: center; margin-bottom: 30px; }
-        .logo { font-size: 40px; margin-bottom: 10px; }
-        h1 { font-size: 30px; font-weight: 700; margin-bottom: 8px; }
-        .subtitle { color: #666; font-size: 15px; }
-
-        .card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-        }
-
-        .alert {
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .alert-error  { background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2); color: #ff6b6b; }
-        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #22c55e; }
-
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 13px; color: #999; font-weight: 500; }
-
-        input[type=email] {
-            width: 100%;
-            padding: 14px;
-            background: #000;
-            border: 1px solid #333;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 15px;
-            transition: all 0.3s;
-        }
-        input[type=email]:focus { outline: none; border-color: #f0a500; }
-        input[type=email]::placeholder { color: #444; }
-
-        .btn-submit {
-            width: 100%;
-            padding: 16px;
-            background: #f0a500;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 8px;
-        }
-        .btn-submit:hover { background: #ffc107; transform: translateY(-2px); }
-
-        .divider { text-align: center; margin: 28px 0; border-bottom: 1px solid #222; line-height: 0.1em; }
-        .divider span { background: #111; padding: 0 15px; color: #444; font-size: 12px; }
-
-        .footer-link { text-align: center; font-size: 14px; color: #666; }
-        .footer-link a { color: #f0a500; text-decoration: none; font-weight: 600; }
-        .footer-link a:hover { text-decoration: underline; }
-
-        .success-icon { font-size: 48px; text-align: center; margin-bottom: 16px; }
-    </style>
+    <title>Forgot Password</title>
+    <link rel="stylesheet" href="assets/css/forgot_password.css">
 </head>
 <body>
 
