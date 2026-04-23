@@ -1,0 +1,105 @@
+:root { 
+    --primary-gold: #c59100; 
+    --dark-slate: #2c3e50; 
+    --bg-gray: #e0e0e0;
+}
+
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: var(--bg-gray); 
+    padding: 20px; 
+    margin: 0;
+}
+
+/* Container */
+.statement-container { 
+    background: #fff; 
+    max-width: 900px; 
+    margin: 0 auto; 
+    padding: 60px; 
+    border-top: 8px solid var(--primary-gold); 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+    position: relative;
+    min-height: 800px;
+}
+
+/* Decoration */
+.watermark {
+    position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 80px; font-weight: 900; 
+    color: rgba(0,0,0,0.03); z-index: 0; 
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+/* Header */
+.header { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 40px; 
+    border-bottom: 1px solid #eee; 
+    padding-bottom: 20px;
+}
+
+.header h1 span { color: var(--primary-gold); }
+
+/* Grid */
+.info-grid { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 20px; 
+    margin-bottom: 40px; 
+}
+
+.info-box { 
+    background: #f9f9f9; 
+    padding: 20px; 
+    border-radius: 8px; 
+    border: 1px solid #eee; 
+}
+
+.info-box .label { font-size: 10px; color: var(--primary-gold); font-weight: bold; margin-bottom: 5px; }
+.info-box .value { font-size: 16px; font-weight: bold; color: var(--dark-slate); }
+
+/* Table */
+.statement-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.statement-table th { 
+    background: var(--dark-slate); 
+    color: #fff; 
+    padding: 12px; 
+    text-align: left; 
+    font-size: 11px; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.statement-table td { 
+    padding: 12px; 
+    border-bottom: 1px solid #f0f0f0; 
+    font-size: 13px; 
+    color: #333;
+}
+
+.text-right { text-align: right; }
+
+/* Buttons */
+.print-btn {
+    padding: 10px 25px; 
+    background: var(--primary-gold); 
+    color: #fff; 
+    border: none; 
+    cursor: pointer; 
+    border-radius: 4px; 
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: 0.3s;
+}
+
+
+
+
+@media print { 
+    .no-print { display: none; } 
+    body { background: #fff; padding: 0; } 
+    .statement-container { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 20px; } 
+}

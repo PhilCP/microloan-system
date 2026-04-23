@@ -1,5 +1,4 @@
 <?php
-/
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -8,13 +7,12 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-//  1. Tactical Access Control (Lock/Unlock)
+// Access Control (to lock/unlock)
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $targetId = intval($_GET['id']);
     $action = $_GET['action'];
     $newStatus = ($action === 'activate') ? 1 : 0;
 
-    // Safety Protocol: Prevent Admin from locking their own account
     if ($targetId !== $user['id']) { 
         $stmt = $conn->prepare("UPDATE users SET is_active = ? WHERE id = ?");
         $stmt->bind_param("ii", $newStatus, $targetId);
@@ -32,11 +30,10 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     exit;
 }
 
-// 2. Registry Filtration Logic
+// Filter Logic
 $search = $_GET['search'] ?? '';
 $filterRole = $_GET['role'] ?? '';
 
-// Using Prepared Statement for search safety
 $query = "SELECT id, full_name, email, role, is_active, created_at FROM users WHERE 1=1";
 $params = [];
 $types = "";
@@ -71,51 +68,7 @@ $pageTitle = "Personnel Registry";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        body { background: #000; color: #fff; }
-        
-        /* Header & Search */
-        .management-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .search-bar { 
-            display: flex; gap: 10px; background: #0a0a0a; padding: 20px; 
-            border-radius: 12px; border: 1px solid #1a1a1a; margin-bottom: 30px;
-        }
-        .input-dark { 
-            background: #000; border: 1px solid #222; color: #fff; 
-            padding: 12px; border-radius: 6px; font-size: 14px;
-        }
-        .input-dark:focus { border-color: #f0a500; outline: none; }
-        
-        /* Personnel Table */
-        .user-table { width: 100%; border-collapse: collapse; background: #0a0a0a; border-radius: 12px; overflow: hidden; border: 1px solid #1a1a1a; }
-        .user-table th { background: #111; color: #444; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-        .user-table td { padding: 18px 15px; border-bottom: 1px solid #111; font-size: 14px; vertical-align: middle; }
-        .user-table tr:hover { background: #0f0f0f; }
-        
-        /* Designations */
-        .role-pill { font-size: 10px; padding: 4px 10px; border-radius: 4px; font-weight: 900; text-transform: uppercase; border: 1px solid currentColor; }
-        .role-admin { color: #f0a500; background: rgba(240,165,0,0.05); }
-        .role-officer { color: #3b82f6; background: rgba(59,130,246,0.05); }
-        .role-borrower { color: #666; background: rgba(255,255,255,0.02); }
-        
-        /* Status Tracking */
-        .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; }
-        .dot { height: 6px; width: 6px; border-radius: 50%; }
-        .dot-active { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .dot-locked { background: #ef4444; }
-
-        /* Ops Buttons */
-        .btn-op { 
-            text-decoration: none; font-size: 11px; padding: 8px 14px; border-radius: 6px; 
-            font-weight: 800; transition: 0.3s; border: 1px solid #222; color: #fff; display: inline-block;
-        }
-        .btn-op:hover { border-color: #f0a500; color: #f0a500; }
-        .btn-deploy { background: #f0a500; color: #000 !important; border: none; text-transform: uppercase; }
-        .btn-deploy:hover { background: #fff; transform: translateY(-2px); }
-        
-        .btn-story { background: rgba(240, 165, 0, 0.1); color: #f0a500 !important; border-color: #f0a500; }
-        .btn-story:hover { background: #f0a500; color: #000 !important; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/users-management.css">
 </head>
 <body>
 
@@ -125,10 +78,11 @@ $pageTitle = "Personnel Registry";
         <?php include '../includes/dashboard_header.php'; ?>
 
         <div class="management-header">
-            <div>
+            <!-- <div>
                 <h2 style="font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Personnel Registry</h2>
                 <p style="color: #444; font-size: 13px;">Modify operational permissions and verify personnel identities.</p>
-            </div>
+            </div> -->
+            <!-- not need for now since the page's title is already on top -->
             <a href="add_user.php" class="btn-op btn-deploy">Deploy New User</a>
         </div>
 
@@ -172,9 +126,9 @@ $pageTitle = "Personnel Registry";
                         <td>
                             <div class="status-indicator">
                                 <?php if($u['is_active']): ?>
-                                    <span class="dot dot-active"></span> <span style="color:#22c55e">GRANTED</span>
+                                    <span style="color:#22c55e">GRANTED</span>
                                 <?php else: ?>
-                                    <span class="dot dot-locked"></span> <span style="color:#ef4444">REVOKED</span>
+                                    <span style="color:#ef4444">REVOKED</span>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -203,14 +157,13 @@ $pageTitle = "Personnel Registry";
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="5" style="text-align:center; padding:80px; color:#222; text-transform: uppercase; font-weight: 900;">Registry is empty or filter returned no results.</td></tr>
+                    <tr><td colspan="5" style="text-align:center; padding:80px; color:#222; text-transform: uppercase; font-weight: 900;">Registry is empty.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </main>
 
     <script>
-        // Smooth Sidebar Toggle
         document.getElementById('sidebarToggle').addEventListener('click',()=>{
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('dashboardMain').style.marginLeft = 

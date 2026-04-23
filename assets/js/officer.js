@@ -1,10 +1,7 @@
-/**
- * OFFICER DASHBOARD CONTROLLER
- * Handles: Search, Sort, and Loan Actions via Event Delegation
- */
+
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Table Search
+    // Table Search
     const searchInput = document.getElementById('loanSearch');
     if (searchInput) {
         searchInput.addEventListener('keyup', () => {
@@ -25,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Table Sort
+    // Table Sort
     window.sortTable = function(tableId, col) {
         const table = document.getElementById(tableId);
         if (!table) return;
@@ -40,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         table.setAttribute('data-sort', asc ? 'asc' : 'desc');
     }
 
-    // 3. Modal Logic via Event Delegation
+    //Modal Logic via Event Delegation
     let currentLoanId = null;
     let currentAction = null;
     const modal = document.getElementById('remarksModal');
@@ -77,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelModal').onclick = () => modal.style.display = 'none';
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
-    // 4. Submit Action
+    //Submit Action
     document.getElementById('confirmAction').onclick = function() {
         const btn = this;
         const remarks = remarksInput.value;

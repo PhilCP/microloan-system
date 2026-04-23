@@ -6,7 +6,7 @@ require_once '../config/db.php';
 
 $user = getCurrentUser();
 
-// --- Global Summary ---
+//Global Summary
 $statsQuery = "SELECT 
     (SELECT SUM(total_amount) FROM loans WHERE status IN ('approved', 'completed')) as total_disbursed,
     (SELECT SUM(amount_paid) FROM repayments) as total_recovered";
@@ -16,7 +16,7 @@ $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
 $outstanding = $totalDisbursed - $totalRecovered;
 
-// --- Master Repayment List ---
+//Mastr Repayment List
 $repaymentsQuery = "SELECT r.*, u.full_name, l.remaining_balance
                     FROM repayments r
                     JOIN loans l ON r.loan_id = l.id
@@ -29,31 +29,13 @@ $repayments = $conn->query($repaymentsQuery);
 <head>
     <meta charset="UTF-8">
     <title>Master_Audit_<?php echo date('Ymd'); ?></title>
-    <style>
-        :root { --primary-gold: #c59100; --dark-slate: #2c3e50; }
-        body { font-family: 'Segoe UI', sans-serif; background: #e0e0e0; padding: 40px; }
-        .statement-container { 
-            background: #fff; max-width: 1000px; margin: 0 auto; padding: 60px; 
-            border-top: 8px solid var(--primary-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative;
-        }
-        .watermark {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 60px; font-weight: 900; color: rgba(0,0,0,0.03); z-index: 0; pointer-events: none;
-        }
-        .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px;}
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
-        .info-box { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
-        .statement-table { width: 100%; border-collapse: collapse; }
-        .statement-table th { background: var(--dark-slate); color: #fff; padding: 12px; text-align: left; font-size: 11px; }
-        .statement-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
-        .text-right { text-align: right; }
-        @media print { .no-print { display: none; } body { background: #fff; padding: 0; } .statement-container { box-shadow: none; border: none; } }
-    </style>
+    <link rel="stylesheet" href="../assets/css/full_history_report.css">
+   
 </head>
 <body>
 
 <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-    <button onclick="window.print()" style="padding: 10px 20px; background: var(--primary-gold); color: #fff; border: none; cursor: pointer; border-radius: 5px; font-weight: bold;">🖨️ PRINT SYSTEM MASTER LEDGER</button>
+    <button onclick="window.print()" style="padding: 10px 20px; background: var(--primary-gold); color: #fff; border: none; cursor: pointer; border-radius: 5px; font-weight: bold;"> PRINT SYSTEM MASTER LEDGER</button>
     <a href="reports.php" style="margin-left: 10px; color: #666;">Back to Dashboard</a>
 </div>
 

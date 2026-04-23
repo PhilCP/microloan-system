@@ -1,0 +1,98 @@
+/* Personnel Registry Specific Styles */
+body { background: #000; color: #fff; }
+
+/* Header & Search */
+.management-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 30px; 
+}
+
+.search-bar { 
+    display: flex; 
+    gap: 10px; 
+    background: #0a0a0a; 
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid #1a1a1a; 
+    margin-bottom: 30px;
+}
+
+.input-dark { 
+    background: #000; 
+    border: 1px solid #222; 
+    color: #fff; 
+    padding: 12px; 
+    border-radius: 6px; 
+    font-size: 14px;
+}
+
+.input-dark:focus { border-color: #f0a500; outline: none; }
+
+/* Personnel Table */
+.user-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    background: #0a0a0a; 
+    border-radius: 12px; 
+    overflow: hidden; 
+    border: 1px solid #1a1a1a; 
+}
+
+.user-table th { 
+    background: #111; 
+    color: #444; 
+    padding: 15px; 
+    text-align: left; 
+    font-size: 11px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+}
+
+.user-table td { 
+    padding: 18px 15px; 
+    border-bottom: 1px solid #111; 
+    font-size: 14px; 
+    vertical-align: middle; 
+}
+
+.user-table tr:hover { background: #0f0f0f; }
+
+/* Designations */
+.role-pill { 
+    font-size: 10px; 
+    padding: 4px 10px; 
+    border-radius: 4px; 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    border: 1px solid currentColor; 
+}
+
+.role-admin { color: #f0a500; background: rgba(240,165,0,0.05); }
+.role-officer { color: #3b82f6; background: rgba(59,130,246,0.05); }
+.role-borrower { color: #666; background: rgba(255,255,255,0.02); }
+
+/* Status Tracking */
+.status-indicator { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; }
+
+
+/* Ops Buttons */
+.btn-op { 
+    text-decoration: none; 
+    font-size: 11px; 
+    padding: 8px 14px; 
+    border-radius: 6px; 
+    font-weight: 800; 
+    transition: 0.3s; 
+    border: 1px solid #222; 
+    color: #fff; 
+    display: inline-block;
+}
+
+.btn-op:hover { border-color: #f0a500; color: #f0a500; }
+.btn-deploy { background: #f0a500; color: #000 !important; border: none; text-transform: uppercase; }
+.btn-deploy:hover { background: #fff; transform: translateY(-2px); }
+
+.btn-story { background: rgba(240, 165, 0, 0.1); color: #f0a500 !important; border-color: #f0a500; }
+.btn-story:hover { background: #f0a500; color: #000 !important; }

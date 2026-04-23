@@ -25,21 +25,21 @@ $user_role = $_SESSION['role'] ?? 'borrower';
         <ul class="menu">
             <li class="<?= $current_page == 'dashboard.php' ? 'active' : ''; ?>">
                 <a href="dashboard.php">
-                    <span class="icon">📊</span>
+                   
                     <span class="text">Dashboard</span>
                 </a>
             </li>
 
             <?php if ($user_role === 'admin'): ?>
             <li class="<?= in_array($current_page, ['users.php','add_user.php','edit_user.php']) ? 'active' : ''; ?>">
-                <a href="users.php">
-                    <span class="icon">👥</span>
+                <a href="/microloan-system/admin/users.php">
+                    
                     <span class="text">Users</span>
                 </a>
             </li>
             <li class="<?= $current_page == 'activity_logs.php' ? 'active' : ''; ?>">
                 <a href="activity_logs.php">
-                    <span class="icon">📜</span>
+                   
                     <span class="text">Audit Logs</span>
                 </a>
             </li>
@@ -48,7 +48,7 @@ $user_role = $_SESSION['role'] ?? 'borrower';
             <?php if ($user_role === 'admin' || $user_role === 'officer'): ?>
             <li class="<?= $current_page == 'reports.php' ? 'active' : ''; ?>">
                 <a href="reports.php">
-                    <span class="icon">📈</span>
+                    
                     <span class="text">Reports</span>
                 </a>
             </li>
@@ -65,7 +65,7 @@ $user_role = $_SESSION['role'] ?? 'borrower';
 
     <div class="sidebar-footer">
         <a href="../logout.php" class="logout-link">
-            <span class="icon">🔒</span>
+         
             <span class="text">Logout</span>
         </a>
     </div>
