@@ -13,9 +13,7 @@ if(!$user){
     die("User not found. Check session.");
 }
 
-// --------------------
-// Stats Helper
-// --------------------
+// stats
 function fetchValue($query, $default=0){
     global $conn;
     $res = $conn->query($query);
@@ -30,9 +28,7 @@ $approvedLoans = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE borrower_
 $pendingLoans = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE borrower_id=$u_id AND status='pending'");
 $totalDisbursed = fetchValue("SELECT SUM(total_amount) AS total FROM loans WHERE borrower_id=$u_id AND status='approved'");
 
-// --------------------
 // Loan trends (last 6 months)
-// --------------------
 $loanTrends = [];
 for($i=5;$i>=0;$i--){
     $month = date('Y-m', strtotime("-$i month"));
@@ -40,9 +36,7 @@ for($i=5;$i>=0;$i--){
     $loanTrends[] = ['month'=>date('M Y', strtotime($month.'-01')), 'total'=>$amount];
 }
 
-// --------------------
 // Recent Loan History
-// --------------------
 $sqlLoans = "SELECT id, amount, total_amount, status, created_at 
              FROM loans 
              WHERE borrower_id=$u_id 
@@ -60,79 +54,9 @@ $role = "borrower";
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo $pageTitle; ?></title>
 <link rel="stylesheet" href="../assets/css/dashboard.css">
+<link rel="stylesheet" href="../assets/css/borrower-dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-/* Dashboard Container Fixes */
-.dashboard-main { 
-    margin-left: 240px; 
-    transition: 0.3s; 
-    padding: 30px; 
-    min-height: 100vh;
-}
 
-/* Quick Actions - Pure Gold Glow, No White Border */
-.action-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 30px;
-}
-
-.action-card {
-    background: linear-gradient(135deg, #f0a500 0%, #ff8c00 100%);
-    padding: 24px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #000;
-    transition: all 0.3s;
-    display: block;
-    border: none; 
-}
-
-.action-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(240, 165, 0, 0.5); /* Gold Glow Only */
-}
-
-/* Table Search UI */
-.table-search {
-    padding: 10px;
-    margin-bottom: 12px;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    background: #111;
-    color: #fff;
-}
-
-/* Info Alert Styling */
-.info-alert {
-    background: rgba(59, 130, 246, 0.1);
-    border-left: 4px solid #3b82f6;
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 24px;
-    color: #ddd;
-}
-
-/* Tactical Table Styles */
-.table-container {
-    background: #0a0a0a;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #1a1a1a;
-}
-
-table { width: 100%; border-collapse: collapse; color: #fff; margin-top: 10px; }
-th, td { padding: 12px; border: 1px solid #222; text-align: left; }
-th { cursor: pointer; background: #1a1a1a; color: #f0a500; font-size: 11px; text-transform: uppercase; }
-tr:hover { background: #111; }
-
-@media (max-width: 992px) {
-    .dashboard-main { margin-left: 0 !important; padding-top: 80px !important; }
-}
-</style>
 </head>
 <body style="background: #000;">
 
@@ -142,7 +66,7 @@ tr:hover { background: #111; }
     <?php include '../includes/dashboard_header.php'; ?>
 
     <div class="welcome" style="margin-bottom: 25px;">
-        <h2 style="color: #fff; margin:0;">👋 Borrower Dashboard</h2>
+        <h2 style="color: #fff; margin:0;">Borrower Dashboard</h2>
         <p style="color: #666; margin-top: 5px;">Monitor your capital access and credit trends.</p>
     </div>
 
@@ -166,25 +90,25 @@ tr:hover { background: #111; }
     </div>
 
     <div class="quick-actions">
-        <h3 style="color: #fff; font-size: 16px; margin-bottom: 16px;">⚡ Quick Actions</h3>
+        <h3 style="color: #fff; font-size: 16px; margin-bottom: 16px;"> Quick Actions</h3>
         <div class="action-grid">
             <a href="apply-loan.php" class="action-card">
-                <div class="action-icon">📝</div>
+               
                 <div class="action-title">Apply for Loan</div>
                 <div class="action-desc">Submit a new request</div>
             </a>
             <a href="my-loans.php" class="action-card">
-                <div class="action-icon">📊</div>
+               
                 <div class="action-title">View My Loans</div>
                 <div class="action-desc">Track all applications</div>
             </a>
             <a href="my-loans.php?filter=approved" class="action-card">
-                <div class="action-icon">💰</div>
+     
                 <div class="action-title">Active Loans</div>
                 <div class="action-desc">Review approved credits</div>
             </a>
             <a href="my-loans.php?filter=pending" class="action-card">
-                <div class="action-icon">⏳</div>
+              
                 <div class="action-title">Pending Status</div>
                 <div class="action-desc">Check review progress</div>
             </a>
@@ -193,7 +117,7 @@ tr:hover { background: #111; }
 
     <?php if ($pendingLoans > 0): ?>
     <div class="info-alert">
-        <strong>📌 Notice:</strong> You have <?php echo $pendingLoans; ?> pending application(s) awaiting review. 
+        <strong> Notice:</strong> You have <?php echo $pendingLoans; ?> pending application(s) awaiting review. 
         <a href="my-loans.php?filter=pending" style="color: #3b82f6; text-decoration: underline; font-weight:bold; margin-left:10px;">View status →</a>
     </div>
     <?php endif; ?>

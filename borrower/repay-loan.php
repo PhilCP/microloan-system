@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* Get Repayment History */
+/* logic to Get Repayment History */
 $history = $conn->prepare("SELECT * FROM repayments WHERE loan_id=? ORDER BY created_at DESC");
 $history->bind_param("i", $loan_id);
 $history->execute();
@@ -82,98 +82,14 @@ $pageTitle = "Repay Loan #" . $loan_id;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        body { background: #000; color: #fff; }
-        .form-container { max-width: 700px; margin: 40px auto; padding: 20px; }
-        
-        /* Tactical Info Box */
-        .info-box {
-            background: #0a0a0a;
-            border: 1px solid #1a1a1a;
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            border-top: 4px solid #f0a500;
-        }
-
-        .balance-display {
-            font-size: 36px;
-            font-weight: 900;
-            color: #f0a500;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Forms */
-        .payment-input-wrapper {
-            background: #111;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 25px;
-            border: 1px solid #222;
-        }
-        
-        input[type="number"] {
-            width: 100%;
-            background: #000;
-            border: 1px solid #333;
-            color: #fff;
-            padding: 15px;
-            font-size: 18px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        /* Buttons */
-        .btn-group { display: flex; gap: 10px; }
-        .btn { 
-            flex: 1; 
-            padding: 14px; 
-            border-radius: 8px; 
-            font-weight: 800; 
-            cursor: pointer; 
-            text-transform: uppercase; 
-            border: none;
-            transition: 0.3s;
-            text-decoration: none;
-            text-align: center;
-        }
-        .btn-primary { background: #f0a500; color: #000; }
-        .btn-primary:hover { background: #ffc107; transform: translateY(-2px); }
-        .btn-secondary { background: #1a1a1a; color: #fff; }
-
-        /* Table */
-        .statement-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-        .statement-table th { text-align: left; color: #555; padding: 12px; border-bottom: 1px solid #222; text-transform: uppercase; }
-        .statement-table td { padding: 15px 12px; border-bottom: 1px solid #111; }
-
-        .btn-download {
-            padding: 6px 12px;
-            background: rgba(240, 165, 0, 0.1);
-            color: #f0a500;
-            border: 1px solid #f0a500;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .btn-download:hover { background: #f0a500; color: #000; }
-        
-        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: 700; }
-        .alert-success { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid #22c55e; }
-        .alert-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/repay-loan.css">
+  
 </head>
 <body>
 
 <div class="form-container">
     <div style="margin-bottom: 30px;">
-        <h2 style="margin:0;">💳 Repayment Terminal</h2>
+        <h2 style="margin:0;"> Repayment Terminal</h2>
         <p style="color: #666;">Loan Reference: #LN-<?php echo str_pad($loan['id'], 5, '0', STR_PAD_LEFT); ?></p>
     </div>
     
@@ -182,7 +98,7 @@ $pageTitle = "Repay Loan #" . $loan_id;
     <?php endif; ?>
     
     <?php if($error): ?>
-        <div class="alert alert-error">⚠️ <?php echo $error; ?></div>
+        <div class="alert alert-error"> <?php echo $error; ?></div>
     <?php endif; ?>
 
     <div class="info-box">
@@ -216,7 +132,7 @@ $pageTitle = "Repay Loan #" . $loan_id;
     </div>
 
     <div style="margin-top: 50px;">
-        <h3 style="color: #f0a500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">📜 Transaction Ledger</h3>
+        <h3 style="color: #f0a500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;"> Transaction Ledger</h3>
         <div style="background: #0a0a0a; border-radius: 12px; border: 1px solid #1a1a1a; overflow: hidden;">
             <table class="statement-table">
                 <thead>
