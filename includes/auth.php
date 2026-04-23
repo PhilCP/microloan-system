@@ -1,8 +1,4 @@
 <?php
-/**
- * Authentication Functions
- * Microloan Management System
- */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validation
     if (empty($full_name) || empty($email) || empty($_POST['password'])) {
-        $message = "<div class='alert error'>⚠️ All fields are required.</div>";
+        $message = "<div class='alert error'> All fields are required.</div>";
     } else {
         // Identity Collision Check
         $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
