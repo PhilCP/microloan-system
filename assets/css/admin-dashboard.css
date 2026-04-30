@@ -134,10 +134,10 @@ body {
     margin-top: 10px;
 }
 
-.border-pending { border-left-color: #3b82f6; }
+/* .border-pending { border-left-color: #3b82f6; }
 .border-approved { border-left-color: var(--gold); }
 .border-completed { border-left-color: #22c55e; }
-.border-rejected { border-left-color: #ef4444; }
+.border-rejected { border-left-color: #ef4444; } */
 
 /* Audit Stream */
 .activity-feed {

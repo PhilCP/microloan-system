@@ -93,7 +93,7 @@ try {
     $insertStmt->bind_param("idsssis", $loanId, $amountPaid, $paymentDate, $paymentMethod, $receiptNumber, $recordedBy, $notes);
     
     if (!$insertStmt->execute()) {
-        throw new Exception('Failed to record payment');
+        throw new Exception('Failed to record payment!');
     }
     
     $repaymentId = $conn->insert_id;

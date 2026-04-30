@@ -15,15 +15,13 @@ if(!$user){
 
 $success = '';
 $error = '';
-$interest_rate = 5.00; // Default interest rate
+$interest_rate = 5.00;
 
-// Process form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $amount = floatval($_POST['amount']);
+    $amount   = floatval($_POST['amount']);
     $duration = intval($_POST['duration_months']);
-    $purpose = trim($_POST['purpose']);
-    
-    // Validate inputs against the requirements
+    $purpose  = trim($_POST['purpose']);
+
     if ($amount < 500) {
         $error = "Minimum loan amount is KES 500";
     } elseif ($amount > 10000) {
@@ -33,71 +31,86 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (empty($purpose)) {
         $error = "Please provide loan purpose";
     } else {
-        // Calculate total amount with interest
-        $interest_amount = ($amount * $interest_rate * $duration) / 100;
-        $total_amount = $amount + $interest_amount;
+        $interest_amount   = ($amount * $interest_rate * $duration) / 100;
+        $total_amount      = $amount + $interest_amount;
         $remaining_balance = $total_amount;
-        
-        // Insert loan application
-        $stmt = $conn->prepare("INSERT INTO loans (borrower_id, amount, interest_rate, total_amount, remaining_balance, duration_months, purpose, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-        $stmt->bind_param("iddddis", $user['id'], $amount, $interest_rate, $total_amount, $remaining_balance, $duration, $purpose);
-        
+
+        // Insert loan assigned_officer_id left NULL until assigned below
+        $stmt = $conn->prepare(
+            "INSERT INTO loans 
+             (borrower_id, amount, interest_rate, total_amount, remaining_balance, duration_months, purpose, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')"
+        );
+        $stmt->bind_param("iddddis",
+            $user['id'], $amount, $interest_rate,
+            $total_amount, $remaining_balance, $duration, $purpose
+        );
+
         if ($stmt->execute()) {
             $loan_id = $stmt->insert_id;
-            // Find officer with least pending loans (Round Robin)
-            $officerQuery = "SELECT u.id, u.full_name, COUNT(l.id) as loan_count 
-                            FROM users u 
-                            LEFT JOIN loans l ON u.id = l.approved_by AND l.status='pending'
-                            WHERE u.role='officer'
-                            GROUP BY u.id, u.full_name
-                            ORDER BY loan_count ASC, u.id ASC
-                            LIMIT 1";
-            
+
+            // Find officer with fewest currently assigned pending loans
+            $officerQuery = "SELECT u.id, u.full_name, COUNT(l.id) AS loan_count 
+                             FROM users u 
+                             LEFT JOIN loans l 
+                               ON u.id = l.assigned_officer_id AND l.status = 'pending'
+                             WHERE u.role = 'officer' AND u.is_active = 1
+                             GROUP BY u.id, u.full_name
+                             ORDER BY loan_count ASC, u.id ASC
+                             LIMIT 1";
+
             $officerResult = $conn->query($officerQuery);
-            
+
             if ($officerResult && $officerResult->num_rows > 0) {
                 $officer = $officerResult->fetch_assoc();
-                
-                // Assign loan to officer with least pending loans
-                $assignStmt = $conn->prepare("UPDATE loans SET approved_by = ? WHERE id = ?");
+
+                // Assign loan to that officer
+                $assignStmt = $conn->prepare(
+                    "UPDATE loans SET assigned_officer_id = ? WHERE id = ?"
+                );
                 $assignStmt->bind_param("ii", $officer['id'], $loan_id);
-                
+
                 if ($assignStmt->execute()) {
-                    // Log auto-assignment for tracking
-                    $assignLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                    // Log auto-assignment
+                    $assignLog = $conn->prepare(
+                        "INSERT INTO activity_logs (user_id, action) VALUES (?, ?)"
+                    );
                     $assignAction = "System auto-assigned loan #{$loan_id} to officer {$officer['full_name']} (ID: {$officer['id']})";
-                    $systemUserId = 1; // System user ID (or use borrower's ID)
+                    $systemUserId = 1;
                     $assignLog->bind_param("is", $systemUserId, $assignAction);
                     $assignLog->execute();
-                    
-                    $success = "Your loan application has been submitted and assigned to an officer for review! Application ID: #" . $loan_id;
+
+                    $success = "Application submitted and assigned for review! ID: #" . $loan_id;
                 } else {
-                    // Assignment failed, but loan was created
-                    $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
+                    $success = "Application submitted! An officer will be assigned shortly. ID: #" . $loan_id;
                 }
-                
+
                 $assignStmt->close();
             } else {
-                // No officers available,leave unassigned for admin to manually assign
-                $success = "Your loan application has been submitted successfully! It will be assigned to an officer shortly. Application ID: #" . $loan_id;
                 
-                // Log that no officers were available
-                $noOfficerLog = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
-                $noOfficerAction = "Loan #{$loan_id} submitted but no officers available for auto-assignment";
+                $success = "Application submitted! An officer will be assigned shortly. ID: #" . $loan_id;
+
+                $noOfficerLog = $conn->prepare(
+                    "INSERT INTO activity_logs (user_id, action) VALUES (?, ?)"
+                );
+                $noOfficerAction = "Loan #{$loan_id} submitted but no active officers available for auto-assignment";
                 $noOfficerLog->bind_param("is", $user['id'], $noOfficerAction);
                 $noOfficerLog->execute();
             }
-            // Log borrower's application activity
-            $log_stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+
+            // Log borrower's own activity
+            $log_stmt = $conn->prepare(
+                "INSERT INTO activity_logs (user_id, action) VALUES (?, ?)"
+            );
             $log_action = "Applied for loan of KES " . number_format($amount, 2);
             $log_stmt->bind_param("is", $user['id'], $log_action);
             $log_stmt->execute();
-            
-            // Clear post to reset form
+
             $_POST = array();
         } else {
             $error = "Error submitting application. Please try again.";
         }
+
         $stmt->close();
     }
 }
@@ -130,7 +143,9 @@ $role = "borrower";
         <?php if ($success): ?>
             <div class="alert alert-success">
                 <?php echo htmlspecialchars($success); ?>
-                <div style="margin-top: 10px;"><a href="my-loans.php" style="color: #fff; text-decoration: underline;">Track Applications →</a></div>
+                <div style="margin-top: 10px;">
+                    <a href="my-loans.php" style="color: #fff; text-decoration: underline;">Track Applications →</a>
+                </div>
             </div>
         <?php endif; ?>
 
@@ -152,8 +167,8 @@ $role = "borrower";
             <div class="form-grid">
                 <div class="form-group">
                     <label for="amount">Requested Amount (KES) <span class="required">*</span></label>
-                    <input type="number" id="amount" name="amount" min="500" max="10000" step="100" 
-                           value="<?php echo isset($_POST['amount']) ? $_POST['amount'] : '5000'; ?>" 
+                    <input type="number" id="amount" name="amount" min="500" max="10000" step="100"
+                           value="<?php echo isset($_POST['amount']) ? $_POST['amount'] : '5000'; ?>"
                            required oninput="calculateLoan()">
                     <div style="color:#444; font-size:11px; margin-top:5px;">Min: 500 | Max: 10,000</div>
                 </div>
@@ -161,7 +176,7 @@ $role = "borrower";
                 <div class="form-group">
                     <label for="duration_months">Repayment Horizon <span class="required">*</span></label>
                     <select id="duration_months" name="duration_months" required onchange="calculateLoan()">
-                        <?php 
+                        <?php
                         $durations = [1, 2, 3, 6, 9, 12, 18, 24];
                         foreach($durations as $d){
                             $sel = (isset($_POST['duration_months']) && $_POST['duration_months'] == $d) || (!isset($_POST['duration_months']) && $d == 3) ? 'selected' : '';
@@ -194,29 +209,27 @@ $role = "borrower";
     </div>
 
     <script>
-    document.getElementById('sidebarToggle').addEventListener('click',()=>{
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
         document.getElementById('sidebar').classList.toggle('active');
     });
 
     const interestRate = <?php echo $interest_rate; ?>;
 
     function calculateLoan() {
-        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const amount   = parseFloat(document.getElementById('amount').value) || 0;
         const duration = parseInt(document.getElementById('duration_months').value) || 0;
-        
-        //Interest Calculation using (P * R * T) / 100
+
         const interest = (amount * interestRate * duration) / 100;
-        const total = amount + interest;
-        const monthly = duration > 0 ? (total / duration) : 0;
-        
-        document.getElementById('principalAmount').textContent = 'KES ' + amount.toLocaleString();
-        document.getElementById('interestAmount').textContent = 'KES ' + interest.toLocaleString(undefined, {minimumFractionDigits: 2});
-        document.getElementById('durationDisplay').textContent = duration + ' Month' + (duration !== 1 ? 's' : '');
-        document.getElementById('totalAmount').textContent = 'KES ' + total.toLocaleString(undefined, {minimumFractionDigits: 2});
-        document.getElementById('monthlyPayment').textContent = 'KES ' + monthly.toLocaleString(undefined, {minimumFractionDigits: 2});
+        const total    = amount + interest;
+        const monthly  = duration > 0 ? (total / duration) : 0;
+
+        document.getElementById('principalAmount').textContent  = 'KES ' + amount.toLocaleString();
+        document.getElementById('interestAmount').textContent   = 'KES ' + interest.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('durationDisplay').textContent  = duration + ' Month' + (duration !== 1 ? 's' : '');
+        document.getElementById('totalAmount').textContent      = 'KES ' + total.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('monthlyPayment').textContent   = 'KES ' + monthly.toLocaleString(undefined, {minimumFractionDigits: 2});
     }
 
-    // Initialize calculation on load
     window.onload = calculateLoan;
     </script>
 </main>

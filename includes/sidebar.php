@@ -1,14 +1,6 @@
 <?php
 $current_page = basename($_SERVER['PHP_SELF']);
 $user_role = $_SESSION['role'] ?? 'borrower';
-
-// Map pages to their nav abbreviation for active detection
-$nav_items = [
-    'dashboard'  => ['file' => 'dashboard.php',    'abbr' => 'DB', 'label' => 'Dashboard',  'href' => 'dashboard.php'],
-    'users'      => ['file' => 'users.php',         'abbr' => 'US', 'label' => 'Users',       'href' => '/microloan-system/admin/users.php'],
-    'logs'       => ['file' => 'activity_logs.php', 'abbr' => 'AU', 'label' => 'Audit Logs',  'href' => 'activity_logs.php'],
-    'reports'    => ['file' => 'reports.php',       'abbr' => 'RP', 'label' => 'Reports',     'href' => 'reports.php'],
-];
 ?>
 <link rel="stylesheet" href="/microloan-system/assets/css/sidebar.css">
 
@@ -64,12 +56,76 @@ $nav_items = [
         <div class="nav-divider"></div>
         <div class="nav-section-label">Admin</div>
         <ul class="menu">
-            <li class="<?= $current_page === 'activity_logs.php' ? 'active' : ''; ?>">
+           
+            <li class="<?= $current_page === 'officer-overview.php' ? 'active' : ''; ?>">
+                <a href="officer-overview.php">
+                    <span class="abbr-box">OV</span>
+                    <span class="text">Officer Overview</span>
+                </a>
+                <span class="nav-tooltip">Officer Overview</span>
+            </li>
+            <li class="<?= $current_page === 'borrower-profiles.php' ? 'active' : ''; ?>">
+                <a href="borrower-profiles.php">
+                    <span class="abbr-box">BP</span>
+                    <span class="text">Borrower Profiles</span>
+                </a>
+                <span class="nav-tooltip">Borrower Profiles</span>
+            </li>
+             <li class="<?= $current_page === 'activity_logs.php' ? 'active' : ''; ?>">
                 <a href="activity_logs.php">
                     <span class="abbr-box">AU</span>
                     <span class="text">Audit Logs</span>
                 </a>
                 <span class="nav-tooltip">Audit Logs</span>
+            </li>
+        </ul>
+        <?php endif; ?>
+
+        <?php if ($user_role === 'officer'): ?>
+        <div class="nav-divider"></div>
+        <div class="nav-section-label">Officer</div>
+        <ul class="menu">
+            <li class="<?= $current_page === 'pending-loans.php' ? 'active' : ''; ?>">
+                <a href="pending-loans.php">
+                    <span class="abbr-box">PL</span>
+                    <span class="text">Pending Loans</span>
+                </a>
+                <span class="nav-tooltip">Pending Loans</span>
+            </li>
+            <li class="<?= $current_page === 'approved-loans.php' ? 'active' : ''; ?>">
+                <a href="approved-loans.php">
+                    <span class="abbr-box">AL</span>
+                    <span class="text">Approved Loans</span>
+                </a>
+                <span class="nav-tooltip">Approved Loans</span>
+            </li>
+            <li class="<?= $current_page === 'all-loans.php' ? 'active' : ''; ?>">
+                <a href="all-loans.php">
+                    <span class="abbr-box">LR</span>
+                    <span class="text">Loan Registry</span>
+                </a>
+                <span class="nav-tooltip">Loan Registry</span>
+            </li>
+        </ul>
+        <?php endif; ?>
+
+        <?php if ($user_role === 'borrower'): ?>
+        <div class="nav-divider"></div>
+        <div class="nav-section-label">Loans</div>
+        <ul class="menu">
+            <li class="<?= $current_page === 'apply-loan.php' ? 'active' : ''; ?>">
+                <a href="apply-loan.php">
+                    <span class="abbr-box">AP</span>
+                    <span class="text">Apply for Loan</span>
+                </a>
+                <span class="nav-tooltip">Apply for Loan</span>
+            </li>
+            <li class="<?= $current_page === 'my-loans.php' ? 'active' : ''; ?>">
+                <a href="my-loans.php">
+                    <span class="abbr-box">ML</span>
+                    <span class="text">My Loans</span>
+                </a>
+                <span class="nav-tooltip">My Loans</span>
             </li>
         </ul>
         <?php endif; ?>
@@ -86,7 +142,6 @@ $nav_items = [
 
 </aside>
 
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const sidebar     = document.getElementById('sidebar');
@@ -98,7 +153,6 @@ document.addEventListener('DOMContentLoaded', function () {
         collapseBtn.addEventListener('click', function () {
             sidebar.classList.toggle('collapsed');
             collapseBtn.innerHTML = sidebar.classList.contains('collapsed') ? '&#9654;' : '&#9664;';
-
             const main = document.querySelector('.dashboard-main');
             if (main) {
                 main.style.marginLeft = sidebar.classList.contains('collapsed') ? '52px' : '220px';

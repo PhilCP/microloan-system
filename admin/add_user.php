@@ -1,53 +1,54 @@
 <?php
-
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
 require_once '../config/db.php';
 
-$user = getCurrentUser();
-$role = "admin";
+$user    = getCurrentUser();
+$role    = "admin";
 $message = "";
 
-//Deployment Execution Logic
+// Allowed roles admin can create  borrowers self-register, so only officer and admin here
+$allowedRoles = ['officer'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $full_name = trim($_POST['full_name']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone'] ?? ''); // Add phone field
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $full_name   = trim($_POST['full_name']);
+    $email       = trim($_POST['email']);
+    $phone       = trim($_POST['phone'] ?? '');
+    $raw_password = $_POST['password'];
     $target_role = $_POST['role'];
 
-    // Validation
-    if (empty($full_name) || empty($email) || empty($_POST['password'])) {
-        $message = "<div class='alert error'> All fields are required.</div>";
+    //  Validate that the submitted role is one the admin is allowed to create
+    if (!in_array($target_role, $allowedRoles)) {
+        $message = "<div class='alert error'>Invalid role selected.</div>";
+    } elseif (empty($full_name) || empty($email) || empty($raw_password)) {
+        $message = "<div class='alert error'>All fields are required.</div>";
     } else {
-        // Identity Collision Check
+        // Check for duplicate email
         $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $check->bind_param("s", $email);
         $check->execute();
-        
+
         if ($check->get_result()->num_rows > 0) {
-            $message = "<div class='alert error'> ACCESS DENIED: Email already exists in database, use another email.</div>";
+            $message = "<div class='alert error'>ACCESS DENIED: Email already exists in database.</div>";
         } else {
-            // SQL Injection protected via Prepared Statements
+            $hashed_password = password_hash($raw_password, PASSWORD_DEFAULT);
+
             $stmt = $conn->prepare("INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssss", $full_name, $email, $phone, $password, $target_role);
-            
+            $stmt->bind_param("sssss", $full_name, $email, $phone, $hashed_password, $target_role);
+
             if ($stmt->execute()) {
-                $newUserId = $conn->insert_id;
-                
-                // Log the deployment for audit trails
-                $logAction = "Admin created new user: $full_name ($target_role) - ID: $newUserId";
-                $logStmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+                $newUserId  = $conn->insert_id;
+                $logAction  = "Admin created new $target_role: $full_name (ID: $newUserId)";
+                $logStmt    = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
                 $logStmt->bind_param("is", $user['id'], $logAction);
                 $logStmt->execute();
-                
-                // Redirect with success message
-                $_SESSION['success_message'] = " User created successfully! ID: #$newUserId";
+
+                $_SESSION['success_message'] = "User created successfully! ID: #$newUserId";
                 header("Location: users.php");
                 exit();
             } else {
-                $message = "<div class='alert error'> CRITICAL: Deployment sequence failed. Error: " . $conn->error . "</div>";
+                $message = "<div class='alert error'>Deployment failed. Error: " . $conn->error . "</div>";
             }
         }
         $check->close();
@@ -64,7 +65,6 @@ $pageTitle = "Deploy Personnel";
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/add-user.css">
-   
 </head>
 <body>
 
@@ -76,20 +76,23 @@ $pageTitle = "Deploy Personnel";
         <div class="page-center-wrapper">
             <div style="text-align: center; margin-bottom: 35px;">
                 <h2 style="font-weight: 900; text-transform: uppercase; letter-spacing: 2px;">Personnel Deployment</h2>
-                <p style="color: #444; font-size: 13px;">Initialize agent credentials and grant operational clearance.</p>
+                <p style="color: #444; font-size: 13px;">
+                    Create officer or admin accounts. Borrowers register themselves via the public registration page.
+                </p>
             </div>
 
             <?php echo $message; ?>
 
             <div class="form-container">
                 <form method="POST" autocomplete="off">
+
                     <div class="form-group">
                         <label>Legal Full Name</label>
                         <input type="text" name="full_name" required placeholder="Ex: John Doe">
                     </div>
-                    
+
                     <div class="form-group">
-                        <label>Operational Email</label>
+                        <label>Email Address</label>
                         <input type="email" name="email" required placeholder="identity@domain.com">
                     </div>
 
@@ -99,56 +102,47 @@ $pageTitle = "Deploy Personnel";
                     </div>
 
                     <div class="form-group">
-                        <label>Security Key (Password)</label>
+                        <label>Password</label>
                         <div class="pass-wrapper">
                             <input type="password" name="password" id="passInput" required placeholder="••••••••">
                             <span class="gen-btn" onclick="generatePass()" title="Generate Random Key">Auto-Gen</span>
                         </div>
+                        <small style="color:#666; font-size:11px;">
+                            Share this password with the user so they can log in and change it.
+                        </small>
                     </div>
 
                     <div class="form-group">
-                        <label>Operational Clearance Level</label>
+                        <label>Role</label>
+                   
                         <select name="role" required>
-                            <option value="borrower">Level 1: Borrower</option>
-                            <option value="officer">Level 2: Loan Officer</option>
-                            <option value="admin">Level 3: System Admin</option>
+                            <option value="officer">Loan Officer — Reviews and approves loan applications</option>
+                            <!-- <option value="admin">System Admin — Full system access and user management</option> -->
                         </select>
                     </div>
 
-                    <button type="submit" class="btn-submit">Initiate Deployment</button>
+                    <button type="submit" class="btn-submit">Create Account</button>
                 </form>
             </div>
 
-            <a href="users.php" class="back-link">← Cancel and Exit to Registry</a>
+            <a href="users.php" class="back-link">← Cancel and return to Users</a>
         </div>
     </main>
 
     <script>
-      
-        // logic to generate a 14 char password with uppercase, lowercase, numbers, and symbols
         function generatePass() {
             const charset = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*";
-            let retVal = "";
+            let pass = "";
             for (let i = 0; i < 14; ++i) {
-                retVal += charset.charAt(Math.floor(Math.random() * charset.length));
+                pass += charset.charAt(Math.floor(Math.random() * charset.length));
             }
-            const passInput = document.getElementById('passInput');
-            passInput.value = retVal;
-
-            // Reveal password so admin can record/share it with the new user
-            passInput.type = 'text'; 
-            passInput.style.color = '#f0a500';
-            passInput.style.fontWeight = '900';
-            passInput.style.fontFamily = 'monospace';
+            const input = document.getElementById('passInput');
+            input.value = pass;
+            input.type  = 'text';
+            input.style.color      = '#f0a500';
+            input.style.fontWeight = '900';
+            input.style.fontFamily = 'monospace';
         }
-
-        // Sidebar Responsiveness
-        // document.getElementById('sidebarToggle').addEventListener('click',()=>{
-        //     const sidebar = document.getElementById('sidebar');
-        //     const main = document.getElementById('dashboardMain');
-        //     sidebar.classList.toggle('active');
-        //     main.style.marginLeft = sidebar.classList.contains('active') ? '240px' : '0';
-        // });
     </script>
 </body>
 </html>

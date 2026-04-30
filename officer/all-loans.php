@@ -221,7 +221,7 @@ let currentAction = null;
 const modal = document.getElementById('remarksModal');
 const remarksInput = document.getElementById('officerRemarks');
 
-// Tactical Event Delegation
+//  Event Delegation
 document.querySelector('#loansTable').addEventListener('click', function(e) {
     const trigger = e.target.closest('.ui-trigger');
     if (!trigger) return;
@@ -229,7 +229,7 @@ document.querySelector('#loansTable').addEventListener('click', function(e) {
     currentLoanId = trigger.dataset.id;
     currentAction = trigger.dataset.action;
     
-    // UI Feedback Mapping
+    // Feedback Mapping
     const titles = {
         'approve': 'Finalize Approval',
         'reject': 'Confirm Rejection',
