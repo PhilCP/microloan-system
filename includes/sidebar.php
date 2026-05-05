@@ -56,6 +56,7 @@ $user_role = $_SESSION['role'] ?? 'borrower';
         <div class="nav-divider"></div>
         <div class="nav-section-label">Admin</div>
         <ul class="menu">
+            <li><a href="loans.php"><span class="abbr-box">LN</span><span class="text">Loans</span></a></li>
            
             <li class="<?= $current_page === 'officer-overview.php' ? 'active' : ''; ?>">
                 <a href="officer-overview.php">

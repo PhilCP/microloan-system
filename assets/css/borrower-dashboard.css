@@ -1,13 +1,145 @@
-
-
+/* --- Base Layout --- */
 .dashboard-main { 
     margin-left: 240px; 
     transition: 0.3s; 
     padding: 30px; 
     min-height: 100vh;
+    background: #000;
 }
 
+/* --- Overdue Banner --- */
+.overdue-banner {
+    background: linear-gradient(135deg, #2b0a0a, #1a0000);
+    border: 1px solid #ef4444;
+    border-left: 5px solid #ef4444;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 22px;
+    animation: pulse-border 2s infinite;
+}
 
+@keyframes pulse-border {
+    0%, 100% { border-left-color: #ef4444; }
+    50%      { border-left-color: #fca5a5; }
+}
+
+.overdue-banner h4 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #ef4444;
+}
+
+.overdue-banner .ob-row {
+    display: flex; 
+    justify-content: space-between; 
+    flex-wrap: wrap;
+    gap: 6px; 
+    align-items: center; 
+    margin-top: 8px;
+}
+
+.overdue-banner .ob-detail { font-size: 13px; color: #f87171; }
+.overdue-banner .ob-penalty { font-size: 14px; font-weight: 800; color: #fca5a5; }
+.overdue-banner .ob-action {
+    display: inline-block; padding: 7px 16px;
+    background: #ef4444; color: #fff; font-weight: 800;
+    border-radius: 7px; text-decoration: none; font-size: 12px;
+    white-space: nowrap;
+}
+
+/* --- Active Loan Progress Card --- */
+.active-loan-card {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-top: 3px solid #f0a500;
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+}
+.alc-pay-btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 11px 24px;
+    background: linear-gradient(135deg, #f0a500, #ff8c00);
+    color: #000;
+    font-weight: 800;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.alc-pay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(240, 165, 0, 0.4);
+}
+
+.alc-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
+}
+
+.alc-title {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1px; color: #f0a500; font-weight: 700;
+}
+
+.alc-id { font-size: 12px; color: #444; }
+
+.alc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.alc-stat-label { font-size: 10px; text-transform: uppercase; color: #555; letter-spacing: .5px; margin-bottom: 4px; }
+.alc-stat-value { font-size: 17px; font-weight: 800; color: #fff; }
+
+/* Progress bar */
+.alc-progress-wrap { margin-bottom: 8px; }
+.alc-progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #555; margin-bottom: 6px; font-weight: 700;
+}
+.alc-progress-track {
+    background: #1a1a1a; border-radius: 999px; height: 10px; overflow: hidden;
+}
+.alc-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #f0a500, #22c55e);
+    transition: width 0.6s ease;
+}
+
+/* Days remaining pill */
+.days-pill {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 10px;
+}
+.days-ok      { background: rgba(34,197,94,0.12);  color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.days-warning { background: rgba(234,179,8,0.12);  color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+.days-urgent  { background: rgba(239,68,68,0.12);  color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+.alc-instalment {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #111;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #888;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.alc-instalment strong { color: #f0a500; font-size: 14px; }
+
+/* --- Action Grid & Cards --- */
 .action-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -31,19 +163,10 @@
     box-shadow: 0 8px 24px rgba(240, 165, 0, 0.5); 
 }
 
-/* Table Search  */
-.table-search {
-    padding: 10px;
-    margin-bottom: 12px;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    background: #111;
-    color: #fff;
-}
+.action-title { font-weight: 800; font-size: 16px; }
+.action-desc { font-size: 12px; opacity: 0.8; margin-top: 4px; }
 
-/* Info Alert Styling */
+/* --- Info Alerts --- */
 .info-alert {
     background: rgba(59, 130, 246, 0.1);
     border-left: 4px solid #3b82f6;
@@ -51,9 +174,10 @@
     border-radius: 8px;
     margin-bottom: 24px;
     color: #ddd;
+    font-size: 14px;
 }
 
-
+/* --- Tables & Containers --- */
 .table-container {
     background: #0a0a0a;
     padding: 20px;
@@ -61,11 +185,47 @@
     border: 1px solid #1a1a1a;
 }
 
+.table-search {
+    padding: 12px;
+    margin-bottom: 12px;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #111;
+    color: #fff;
+    outline: none;
+}
+/* --- Quick Actions Section --- */
+.quick-actions {
+    background: #0a0a0a;
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid #1a1a1a;
+    margin-bottom: 24px;
+}
+
+/* --- Active Loan Stat Boxes --- */
+.alc-stat {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.alc-stat:first-child  { border-top: 2px solid #3b82f6; }
+.alc-stat:nth-child(2) { border-top: 2px solid #22c55e; }
+.alc-stat:nth-child(3) { border-top: 2px solid #f0a500; }
+.alc-stat:last-child   { border-top: 2px solid #818cf8; }
+
+.table-search:focus { border-color: #f0a500; }
+
 table { width: 100%; border-collapse: collapse; color: #fff; margin-top: 10px; }
-th, td { padding: 12px; border: 1px solid #222; text-align: left; }
-th { cursor: pointer; background: #1a1a1a; color: #f0a500; font-size: 11px; text-transform: uppercase; }
+th, td { padding: 12px; border: 1px solid #222; text-align: left; font-size: 14px; }
+th { cursor: pointer; background: #1a1a1a; color: #f0a500; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 tr:hover { background: #111; }
 
+/* --- Responsive Layout --- */
 @media (max-width: 992px) {
     .dashboard-main { margin-left: 0 !important; padding-top: 80px !important; }
 }

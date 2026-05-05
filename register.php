@@ -21,9 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone            = trim($_POST['phone']);
     $password         = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-    $role             = 'borrower'; // role is always borrower never taken from form input
+    $role             = 'borrower';
 
-    // Validation
     if (empty($full_name) || empty($email) || empty($phone) || empty($password)) {
         $error = "All fields are required";
     } elseif ($password !== $confirm_password) {
@@ -31,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($password) < 6) {
         $error = "Password must be at least 6 characters";
     } else {
-        // Check if email already exists
         $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $checkStmt->bind_param("s", $email);
         $checkStmt->execute();
@@ -96,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input type="text" name="full_name" placeholder="John Doe"
+                    <input type="text" name="full_name" id="full_name" placeholder="John Doe"
                            value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>"
                            required>
                 </div>
@@ -115,8 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                required>
                     </div>
                 </div>
-
-               
 
                 <div class="form-row">
                     <div class="form-group">
@@ -148,12 +144,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const bar = document.getElementById('strengthBar');
             const val = this.value;
             bar.className = 'strength-bar';
-            if (val.length > 0 && val.length < 6)   bar.classList.add('weak');
+            if (val.length > 0 && val.length < 6)        bar.classList.add('weak');
             else if (val.length >= 6 && val.length < 10) bar.classList.add('medium');
-            else if (val.length >= 10)               bar.classList.add('strong');
+            else if (val.length >= 10)                   bar.classList.add('strong');
         });
 
-        // Phone Auto-format
+        // Full Name with letters, spaces, hyphens, apostrophes only
+        document.getElementById('full_name').addEventListener('keypress', function(e) {
+            if (!/[a-zA-Z\s\-']/.test(e.key)) e.preventDefault();
+        });
+        document.getElementById('full_name').addEventListener('input', function() {
+            this.value = this.value.replace(/[^a-zA-Z\s\-']/g, '');
+        });
+
+        // Phone, digits only (+ allowed at start)
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            const isPlus = e.key === '+' && this.value.length === 0;
+            if (!/[0-9]/.test(e.key) && !isPlus) e.preventDefault();
+        });
+        document.getElementById('phone').addEventListener('input', function() {
+            let val = this.value;
+            const hasPlus = val.startsWith('+');
+            val = val.replace(/[^0-9]/g, '');
+            this.value = hasPlus ? '+' + val : val;
+        });
+
+        // Phone Auto-format on blur
         document.getElementById('phone').addEventListener('blur', function() {
             if (!this.value.startsWith('+254') && this.value.length > 0) {
                 let cleaned = this.value.replace(/\D/g, '');
