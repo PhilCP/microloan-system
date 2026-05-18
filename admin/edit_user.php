@@ -102,7 +102,7 @@ $pageTitle = "Modify Personnel";
                         <select name="role" required>
                             <option value="borrower" <?php echo $target_user['role'] == 'borrower' ? 'selected' : ''; ?>>Level 1 - Borrower</option>
                             <option value="officer" <?php echo $target_user['role'] == 'officer' ? 'selected' : ''; ?>>Level 2 - Loan Officer</option>
-                            <option value="admin" <?php echo $target_user['role'] == 'admin' ? 'selected' : ''; ?>>Level 3 - System Admin</option>
+                            <!-- <option value="admin" <?php echo $target_user['role'] == 'admin' ? 'selected' : ''; ?>>Level 3 - System Admin</option> -->
                         </select>
                     </div>
 
