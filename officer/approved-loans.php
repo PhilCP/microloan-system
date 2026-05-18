@@ -1,5 +1,4 @@
 <?php
-
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -10,25 +9,50 @@ requireRole('officer');
 require_once '../config/db.php';
 
 $user = getCurrentUser();
-if(!$user){
-    die("User not found. Check session.");
+if (!$user) { die("User not found. Check session."); }
+
+$officerId = $user['id'];
+
+// ── Parse pipe-separated collateral string into structured HTML ──
+function parseCollateralDesc(string $desc): string {
+    if (empty(trim($desc))) return '';
+    $parts = explode(' | ', $desc);
+    $lines = [];
+    foreach ($parts as $part) {
+        $part = trim($part);
+        if ($part === '') continue;
+        $colonPos = strpos($part, ': ');
+        if ($colonPos !== false) {
+            $label = htmlspecialchars(substr($part, 0, $colonPos));
+            $value = htmlspecialchars(substr($part, $colonPos + 2));
+            $lines[] = '<tr>
+                <td class="cd-label-cell">' . $label . '</td>
+                <td class="cd-value-cell">' . $value . '</td>
+            </tr>';
+        } else {
+            $lines[] = '<tr><td colspan="2" class="cd-value-cell">' . htmlspecialchars($part) . '</td></tr>';
+        }
+    }
+    return empty($lines) ? '' : '<table class="cd-table">' . implode('', $lines) . '</table>';
 }
 
-// Tactical Query: Fetch active loans with real-time aggregate repayment stats
-$sqlApproved = "SELECT l.*, 
-                u.full_name, u.email, u.phone,
-                (SELECT SUM(amount_paid) FROM repayments WHERE loan_id = l.id) as total_paid,
-                (SELECT COUNT(*) FROM repayments WHERE loan_id = l.id) as payment_count,
-                (SELECT MAX(payment_date) FROM repayments WHERE loan_id = l.id) as last_payment_date
-                FROM loans l 
-                JOIN users u ON l.borrower_id = u.id 
-                WHERE l.status='approved' 
-                ORDER BY l.created_at DESC";
-
-$approvedResult = $conn->query($sqlApproved);
-if(!$approvedResult){
-    die("Query failed: " . $conn->error);
-}
+// Fetch active loans — now includes collateral fields
+$stmt = $conn->prepare(
+    "SELECT l.*, 
+            u.full_name, u.email, u.phone,
+            (SELECT SUM(amount_paid) FROM repayments WHERE loan_id = l.id) as total_paid,
+            (SELECT COUNT(*) FROM repayments WHERE loan_id = l.id) as payment_count,
+            (SELECT MAX(payment_date) FROM repayments WHERE loan_id = l.id) as last_payment_date
+     FROM loans l 
+     JOIN users u ON l.borrower_id = u.id 
+     WHERE l.status = 'approved'
+       AND l.approved_by = ?
+     ORDER BY l.created_at DESC"
+);
+$stmt->bind_param("i", $officerId);
+$stmt->execute();
+$approvedResult = $stmt->get_result();
+if (!$approvedResult) { die("Query failed: " . $conn->error); }
 
 $pageTitle = "Repayment Management";
 $role = "officer";
@@ -36,90 +60,79 @@ $role = "officer";
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo $pageTitle; ?></title>
-<link rel="stylesheet" href="../assets/css/dashboard.css">
-<style>
-/* Dashboard Theme Overrides */
-body { background: #050505; color: #fff; }
-
-/* Modal Tactical Styling */
-.modal { 
-    display: none; 
-    position: fixed; 
-    z-index: 9999; 
-    left: 0; top: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.9); 
-    backdrop-filter: blur(8px); 
-}
-
-.modal-content { 
-    background: #0f0f0f; 
-    margin: 5% auto;
-    padding: 30px; 
-    border: 1px solid #333; 
-    width: 90%;
-    max-width: 500px;
-    border-radius: 12px; 
-    box-shadow: 0 20px 50px rgba(0,0,0,1); 
-}
-
-.modal-header { border-bottom: 1px solid #222; margin-bottom: 20px; padding-bottom: 10px; }
-.modal-header h3 { color: #f0a500; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
-
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 12px; background: #000; border: 1px solid #222; border-radius: 6px; color: #fff; font-size: 14px; transition: 0.3s;
-}
-.form-group input:focus { border-color: #f0a500; outline: none; }
-
-.payment-summary-box {
-    background: rgba(240, 165, 0, 0.05);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(240, 165, 0, 0.1);
-}
-
-/* Loan Card Grid */
-.loans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
-
-.loan-card {
-    background: #0a0a0a;
-    border: 1px solid #1a1a1a;
-    border-radius: 12px;
-    padding: 24px;
-    transition: 0.3s;
-    position: relative;
-    overflow: hidden;
-}
-.loan-card:hover { border-color: #f0a500; transform: translateY(-5px); }
-
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.ref-id { font-family: 'Courier New', monospace; color: #f0a500; font-weight: 800; }
-
-.borrower-tag { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 5px; }
-.contact-tag { font-size: 12px; color: #444; margin-bottom: 20px; }
-
-.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.stat-item { background: #111; padding: 12px; border-radius: 8px; }
-.stat-label { font-size: 9px; color: #444; text-transform: uppercase; font-weight: 800; }
-.stat-value { font-size: 15px; font-weight: 700; }
-
-.progress-track { height: 6px; background: #1a1a1a; border-radius: 10px; margin: 15px 0; overflow: hidden; }
-.progress-fill { height: 100%; background: #f0a500; box-shadow: 0 0 10px rgba(240, 165, 0, 0.3); }
-
-.action-btn {
-    width: 100%; padding: 14px; background: #f0a500; color: #000; border: none; border-radius: 8px; 
-    font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s;
-}
-.action-btn:hover { background: #ffc107; box-shadow: 0 5px 15px rgba(240, 165, 0, 0.2); }
-.action-btn:disabled { background: #111; color: #333; cursor: not-allowed; }
-
-@media (max-width: 768px) { .loans-grid { grid-template-columns: 1fr; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?></title>
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/approved-loans.css">
+    <style>
+    /* ── Collateral block on card ── */
+    .collateral-block {
+        background: rgba(240,165,0,0.05);
+        border: 1px solid rgba(240,165,0,0.2);
+        border-left: 3px solid #f0a500;
+        border-radius: 8px;
+        padding: 11px 14px;
+        margin: 14px 0;
+    }
+    .collateral-block .block-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #f0a500;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+    .collateral-type-badge {
+        display: inline-block;
+        background: rgba(240,165,0,0.12);
+        color: #f0a500;
+        border: 1px solid rgba(240,165,0,0.28);
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 7px;
+    }
+    /* Parsed detail table */
+    .cd-table { border-collapse: collapse; width: 100%; }
+    .cd-label-cell {
+        color: #666;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        padding: 3px 10px 3px 0;
+        vertical-align: top;
+        white-space: nowrap;
+    }
+    .cd-value-cell {
+        color: #ccc;
+        font-size: 12px;
+        padding: 3px 0;
+        vertical-align: top;
+        line-height: 1.4;
+    }
+    .collateral-none {
+        font-size: 12px;
+        color: #555;
+        font-style: italic;
+    }
+    /* Overdue warning on card */
+    .overdue-warn {
+        background: rgba(239,68,68,0.07);
+        border: 1px solid rgba(239,68,68,0.25);
+        border-left: 3px solid #ef4444;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #f87171;
+    }
+    .overdue-warn strong { color: #ef4444; }
+    </style>
 </head>
 <body>
 
@@ -127,7 +140,6 @@ body { background: #050505; color: #fff; }
     <div class="modal-content">
         <div class="modal-header"><h3>Credit Entry</h3></div>
         <div id="paymentLoanInfo" class="payment-summary-box"></div>
-        
         <form id="paymentForm">
             <input type="hidden" id="loanId" name="loan_id">
             <div class="form-group">
@@ -165,17 +177,30 @@ body { background: #050505; color: #fff; }
 
     <div class="header-section" style="margin-bottom: 40px;">
         <h2 style="font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Repayment Management</h2>
-        <p style="color: #444;">Monitor operational liquidity and borrower performance.</p>
+        <p style="color: #444;">Monitor your assigned loans and record borrower repayments.</p>
     </div>
 
     <div class="loans-grid">
         <?php if ($approvedResult->num_rows > 0): ?>
             <?php while ($loan = $approvedResult->fetch_assoc()): ?>
                 <?php
-                $totalPaid = $loan['total_paid'] ?? 0;
-                $balance = $loan['remaining_balance'];
-                $totalContract = $loan['total_amount'];
+                $totalPaid       = $loan['total_paid'] ?? 0;
+                $balance         = $loan['remaining_balance'];
+                $totalContract   = $loan['total_amount'];
                 $progressPercent = ($totalContract > 0) ? ($totalPaid / $totalContract) * 100 : 0;
+
+                // Overdue check
+                $endDate        = date('Y-m-d', strtotime($loan['created_at'] . ' + ' . $loan['duration_months'] . ' months'));
+                $isOverdue      = ($balance > 0 && $endDate < date('Y-m-d'));
+                $daysOverdue    = $isOverdue ? (int)((time() - strtotime($endDate)) / 86400) : 0;
+                $penaltyRate    = (float)($loan['overdue_penalty_rate'] ?? 2.00);
+                $monthsOverdue  = $isOverdue ? max(1, (int)ceil($daysOverdue / 30)) : 0;
+                $penaltyAccrued = $isOverdue ? round($balance * ($penaltyRate / 100) * $monthsOverdue, 2) : 0;
+
+                // Collateral
+                $collType   = $loan['collateral_type'] ?? '';
+                $collDesc   = $loan['collateral_description'] ?? '';
+                $collParsed = parseCollateralDesc($collDesc);
                 ?>
                 <div class="loan-card">
                     <div class="card-header">
@@ -184,7 +209,7 @@ body { background: #050505; color: #fff; }
                     </div>
 
                     <div class="borrower-tag"><?php echo htmlspecialchars($loan['full_name']); ?></div>
-                    <div class="contact-tag">📞 <?php echo htmlspecialchars($loan['phone']); ?></div>
+                    <div class="contact-tag"><?php echo htmlspecialchars($loan['phone']); ?></div>
 
                     <div class="stat-grid">
                         <div class="stat-item">
@@ -204,22 +229,49 @@ body { background: #050505; color: #fff; }
                     <div class="progress-track">
                         <div class="progress-fill" style="width: <?php echo min($progressPercent, 100); ?>%"></div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#444; margin-bottom:20px; font-weight:800;">
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#444; margin-bottom:16px; font-weight:800;">
                         <span>COLLECTED: <?php echo round($progressPercent); ?>%</span>
                         <span>TERMS: <?php echo $loan['duration_months']; ?> MONTHS</span>
+                    </div>
+
+                    <!-- ── OVERDUE WARNING ── -->
+                    <?php if ($isOverdue): ?>
+                    <div class="overdue-warn">
+                        <strong>⚠ OVERDUE — <?php echo $daysOverdue; ?> days</strong><br>
+                        Penalty accrued (<?php echo $penaltyRate; ?>%/mo × <?php echo $monthsOverdue; ?> month<?php echo $monthsOverdue > 1 ? 's' : ''; ?>):
+                        <strong style="color:#ef4444;">KES <?php echo number_format($penaltyAccrued, 2); ?></strong>
+                        &nbsp;— collateral recovery may apply
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- ── COLLATERAL / SECURITY ── -->
+                    <div class="collateral-block">
+                        <div class="block-label">🔒 Security / Collateral</div>
+                        <?php if (!empty($collType)): ?>
+                            <div class="collateral-type-badge"><?php echo htmlspecialchars($collType); ?></div>
+                            <?php if (!empty($collParsed)): ?>
+                                <?php echo $collParsed; ?>
+                            <?php else: ?>
+                                <div class="collateral-none">No detail on file</div>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div class="collateral-none">⚠ No collateral declared</div>
+                        <?php endif; ?>
                     </div>
 
                     <button class="action-btn trigger-payment"
                             data-id="<?php echo $loan['id']; ?>"
                             data-name="<?php echo htmlspecialchars($loan['full_name']); ?>"
-                            data-balance="<?php echo $balance; ?>">
+                            data-balance="<?php echo $balance; ?>"
+                            data-collateral="<?php echo htmlspecialchars($collType); ?>"
+                            data-collateral-desc="<?php echo htmlspecialchars($collDesc); ?>">
                         Record Capital Recovery
                     </button>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
             <div style="grid-column: 1/-1; text-align:center; padding: 100px; color:#222;">
-                <h3 style="text-transform:uppercase;">No Active Debt Found</h3>
+                <h3 style="text-transform:uppercase;">No Active Loans Assigned to You</h3>
             </div>
         <?php endif; ?>
     </div>
@@ -228,50 +280,86 @@ body { background: #050505; color: #fff; }
 <script>
 const modal = document.getElementById('paymentModal');
 
-// Open Modal & Populate Data
+// Parse "Key: Value | Key: Value" into HTML rows for the payment modal
+function parseCollateralForModal(desc) {
+    if (!desc || !desc.trim()) return '<em style="color:#555;font-size:12px;">No details on file</em>';
+    const parts = desc.split(' | ');
+    let html = '<table style="width:100%;border-collapse:collapse;margin-top:4px;">';
+    parts.forEach(part => {
+        const idx = part.indexOf(': ');
+        if (idx !== -1) {
+            const label = part.substring(0, idx).trim();
+            const value = part.substring(idx + 2).trim();
+            html += `<tr>
+                <td style="color:#666;font-size:10px;text-transform:uppercase;letter-spacing:.5px;
+                           padding:3px 10px 3px 0;white-space:nowrap;vertical-align:top;font-weight:600;">${label}</td>
+                <td style="color:#ccc;font-size:12px;padding:3px 0;">${value}</td>
+            </tr>`;
+        } else {
+            html += `<tr><td colspan="2" style="color:#ccc;font-size:12px;padding:3px 0;">${part.trim()}</td></tr>`;
+        }
+    });
+    html += '</table>';
+    return html;
+}
+
 document.querySelectorAll('.trigger-payment').forEach(btn => {
     btn.onclick = function() {
-        const id = this.dataset.id;
-        const name = this.dataset.name;
-        const bal = this.dataset.balance;
+        const id          = this.dataset.id;
+        const name        = this.dataset.name;
+        const bal         = this.dataset.balance;
+        const collType    = this.dataset.collateral    || '';
+        const collDesc    = this.dataset.collateralDesc || '';
 
-        document.getElementById('loanId').value = id;
-        document.getElementById('paymentAmount').max = bal;
-        document.getElementById('paymentAmount').value = bal;
+        document.getElementById('loanId').value          = id;
+        document.getElementById('paymentAmount').max     = bal;
+        document.getElementById('paymentAmount').value   = bal;
+
+        const collBadge = collType
+            ? `<div style="margin-top:8px;">
+                   <span style="display:inline-block;background:rgba(240,165,0,0.12);color:#f0a500;
+                                border:1px solid rgba(240,165,0,0.28);border-radius:4px;
+                                padding:2px 8px;font-size:10px;font-weight:700;
+                                text-transform:uppercase;margin-bottom:5px;">${collType}</span>
+                   ${parseCollateralForModal(collDesc)}
+               </div>`
+            : '<div style="font-size:12px;color:#555;margin-top:6px;">No collateral declared</div>';
+
         document.getElementById('paymentLoanInfo').innerHTML = `
             <div style="font-size:12px; color:#666;">CREDITING ACCOUNT:</div>
             <div style="font-weight:900; color:#fff;">${name} (Ref: #LN-${id.padStart(4, '0')})</div>
             <div style="font-size:11px; color:#f0a500; margin-top:5px;">MAX RECOVERY: KES ${parseFloat(bal).toLocaleString()}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#f0a500;
+                        font-weight:700;margin-top:12px;margin-bottom:2px;">🔒 Pledged Security</div>
+            ${collBadge}
         `;
         modal.style.display = 'block';
     };
 });
 
-// Close Logic
 document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
 window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
 
-// AJAX Submission
 document.getElementById('paymentForm').onsubmit = function(e) {
     e.preventDefault();
     const btn = document.getElementById('submitPayment');
-    btn.disabled = true;
+    btn.disabled  = true;
     btn.innerHTML = "COMMITTING...";
 
     fetch('record_payment.php', { method: 'POST', body: new FormData(this) })
     .then(res => res.json())
     .then(data => {
-        if (data.success) { 
+        if (data.success) {
             modal.style.display = 'none';
-            location.reload(); 
-        } else { 
-            alert('SYSTEM REJECTION: ' + data.error); 
-            btn.disabled = false;
+            location.reload();
+        } else {
+            alert('SYSTEM REJECTION: ' + data.error);
+            btn.disabled  = false;
             btn.innerHTML = "COMMIT ENTRY";
         }
     })
-    .catch(() => { 
-        alert('COMMUNICATION FAILURE'); 
+    .catch(() => {
+        alert('COMMUNICATION FAILURE');
         btn.disabled = false;
     });
 };

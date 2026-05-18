@@ -1,7 +1,7 @@
 <?php
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
-define('DB_PASSWORD', '');  // Default XAMPP has no password
+define('DB_PASSWORD', '');  
 define('DB_NAME', 'microloan_system');
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -16,9 +16,7 @@ if ($conn->connect_error) {
 // Set charset to utf8mb4
 $conn->set_charset("utf8mb4");
 
-/**
- * Helper function to execute prepared statements
- */
+// Helper function to execute prepared statements
 function executeQuery($query, $types = '', $params = []) {
     global $conn;
     
@@ -35,9 +33,7 @@ function executeQuery($query, $types = '', $params = []) {
     return $stmt;
 }
 
-/**
- * Sanitize user input
- */
+// Sanitize user input
 function sanitize($data) {
     global $conn;
     $data = trim($data);
@@ -46,9 +42,7 @@ function sanitize($data) {
     return $conn->real_escape_string($data);
 }
 
-/**
- * Log user activity
- */
+// Log user activity
 function logActivity($user_id, $action) {
     global $conn;
     $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");

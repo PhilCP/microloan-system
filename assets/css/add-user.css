@@ -1,0 +1,117 @@
+body { background: #000; color: #fff; font-family: 'Inter', sans-serif; }
+
+.page-center-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 85vh;
+    padding: 20px;
+}
+
+.form-container { 
+    width: 100%;
+    max-width: 450px; 
+    background: #0a0a0a; 
+    padding: 40px; 
+    border-radius: 12px; 
+    border: 1px solid #1a1a1a; 
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    position: relative;
+}
+
+
+
+.form-group { margin-bottom: 25px; }
+
+label { 
+    display: block; 
+    color: #888; 
+    font-size: 11px; 
+    text-transform: uppercase; 
+    margin-bottom: 10px; 
+    letter-spacing: 1.5px;
+    font-weight: 800;
+}
+
+input, select { 
+    width: 100%; 
+    padding: 14px; 
+    background: #000; 
+    border: 1px solid #222; 
+    color: #fff; 
+    border-radius: 6px; 
+    box-sizing: border-box; 
+    font-size: 14px;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input:focus, select:focus { 
+    border-color: #f0a500; 
+    outline: none; 
+    background: #050505;
+}
+
+.pass-wrapper { position: relative; }
+
+/* Auto-Generation button */
+.gen-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #111;
+    color: #f0a500;
+    border: 1px solid #222;
+    padding: 4px 8px;
+    font-size: 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 900;
+    transition: 0.2s;
+}
+.gen-btn:hover { background: #f0a500; color: #000; border-color: #f0a500; }
+
+.btn-submit { 
+    background: #f0a500; 
+    color: #000; 
+    font-weight: 900; 
+    border: none; 
+    padding: 16px; 
+    cursor: pointer; 
+    width: 100%; 
+    border-radius: 6px; 
+    transition: 0.3s; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 10px;
+}
+
+.btn-submit:hover { 
+    background: #fff; 
+    box-shadow: 0 0 20px rgba(240, 165, 0, 0.2);
+}
+
+.alert { 
+    width: 100%;
+    max-width: 450px;
+    padding: 15px; 
+    border-radius: 6px; 
+    margin-bottom: 25px; 
+    font-size: 12px; 
+    text-align: center;
+    font-weight: 700;
+}
+.error { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; }
+
+.back-link {
+    margin-top: 30px;
+    color: #333;
+    text-decoration: none;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 800;
+}
+.back-link:hover { color: #f0a500; }

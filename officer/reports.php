@@ -9,28 +9,48 @@ requireRole('officer');
 require_once '../config/db.php';
 
 $user = getCurrentUser();
-$role = $user['role'] ?? 'officer'; 
+$role = $user['role'] ?? 'officer';
+$officerId = $user['id']; // scope all queries to this officer
 
-// Fetch Summary Stats
+// Fetch Summary Stats filtered by this officer's assigned loans only
 $statsQuery = "SELECT 
-    (SELECT SUM(amount) FROM loans WHERE status='approved' OR status='completed') as total_disbursed,
-    (SELECT SUM(amount_paid) FROM repayments) as total_recovered,
-    (SELECT COUNT(*) FROM loans WHERE status='approved') as active_loans_count";
+    (SELECT SUM(l.amount) 
+     FROM loans l 
+     WHERE (l.status='approved' OR l.status='completed') 
+     AND l.approved_by = ?) as total_disbursed,
 
-$statsResult = $conn->query($statsQuery);
-$stats = $statsResult->fetch_assoc();
+    (SELECT SUM(r.amount_paid) 
+     FROM repayments r 
+     JOIN loans l ON r.loan_id = l.id 
+     WHERE l.approved_by = ?) as total_recovered,
+
+    (SELECT COUNT(*) 
+     FROM loans 
+     WHERE status='approved' 
+     AND approved_by = ?) as active_loans_count";
+
+$statsStmt = $conn->prepare($statsQuery);
+$statsStmt->bind_param("iii", $officerId, $officerId, $officerId);
+$statsStmt->execute();
+$stats = $statsStmt->get_result()->fetch_assoc();
 
 $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
-$outstanding = $totalDisbursed - $totalRecovered;
+$outstanding    = $totalDisbursed - $totalRecovered;
 
-//  Fetch Detailed Transactions (including Remaining Balance)
+// Fetch Detailed Transactions — only repayments on loans assigned to this officer
 $repaymentsQuery = "SELECT r.*, u.full_name, l.remaining_balance 
                     FROM repayments r
                     JOIN loans l ON r.loan_id = l.id
                     JOIN users u ON l.borrower_id = u.id
-                    ORDER BY r.payment_date DESC LIMIT 50";
-$repaymentsResult = $conn->query($repaymentsQuery);
+                    WHERE l.approved_by = ?
+                    ORDER BY r.payment_date DESC
+                    LIMIT 50";
+
+$repStmt = $conn->prepare($repaymentsQuery);
+$repStmt->bind_param("i", $officerId);
+$repStmt->execute();
+$repaymentsResult = $repStmt->get_result();
 
 $pageTitle = "Financial Reports";
 ?>
@@ -41,93 +61,7 @@ $pageTitle = "Financial Reports";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        /* Black Ops Specific Report Styles */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: #111;
-            border: 1px solid #222;
-            padding: 25px;
-            border-radius: 12px;
-            border-top: 4px solid #f0a500;
-        }
-        .stat-label {
-            color: #666;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        .stat-number {
-            font-size: 24px;
-            font-weight: 800;
-            color: #fff;
-        }
-        .stat-number.success { color: #22c55e; }
-        .stat-number.danger { color: #ef4444; }
-
-        .report-section {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 25px;
-            margin-top: 20px;
-        }
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #222;
-            padding-bottom: 15px;
-        }
-        .method-badge {
-            font-size: 10px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #222;
-            color: #aaa;
-            text-transform: uppercase;
-        }
-        .btn-print {
-            background: #222;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            border: 1px solid #333;
-            cursor: pointer;
-        }
-        .btn-print:hover { background: #f0a500; color: #000; }
-
-        /* Ensure Table is scrollable on small screens to prevent overlap */
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
-        
-        @media print {
-            .sidebar, .btn-print, .header { display: none !important; }
-            .dashboard-main { margin-left: 0 !important; padding: 0 !important; }
-            body { background: white !important; color: black !important; }
-            .stat-card, .report-section { border: 1px solid #ccc !important; }
-        }
-
-        /* Mobile Breakpoint */
-        @media (max-width: 992px) {
-            .dashboard-main {
-                margin-left: 0 !important;
-                padding: 20px !important;
-                padding-top: 80px !important;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../assets/css/officer-reports.css">
 </head>
 <body style="background: #000;">
 
@@ -137,8 +71,8 @@ $pageTitle = "Financial Reports";
         <?php include '../includes/dashboard_header.php'; ?>
 
         <div class="welcome" style="margin-bottom: 30px;">
-            <h2>📊 Tactical Financial Reports</h2>
-            <p style="color: #666;">Monitoring disbursements, recoveries, and field liquidity.</p>
+            <h2>Financial Reports</h2>
+            <p style="color: #666;">Monitoring your disbursements, recoveries, and active loans.</p>
         </div>
 
         <div class="stats-grid">
@@ -163,7 +97,7 @@ $pageTitle = "Financial Reports";
         <div class="report-section">
             <div class="section-header">
                 <h3>Transaction History</h3>
-               <a href="full_history_report.php" class="btn-print" target="_blank">🖨️ Export Official History</a>
+                <a href="full_history_report.php" class="btn-print" target="_blank">Export Official History</a>
             </div>
 
             <div class="table-container">
@@ -180,7 +114,7 @@ $pageTitle = "Financial Reports";
                     </thead>
                     <tbody>
                         <?php if ($repaymentsResult && $repaymentsResult->num_rows > 0): ?>
-                            <?php while($row = $repaymentsResult->fetch_assoc()): ?>
+                            <?php while ($row = $repaymentsResult->fetch_assoc()): ?>
                             <tr>
                                 <td style="font-size: 13px; color: #888;">
                                     <?php echo date('M d, Y', strtotime($row['payment_date'])); ?>
@@ -199,7 +133,7 @@ $pageTitle = "Financial Reports";
                         <?php else: ?>
                             <tr>
                                 <td colspan="6" style="text-align: center; padding: 40px; color: #666;">
-                                    No repayment transactions recorded in the system.
+                                    No repayment transactions recorded for your loans.
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -210,7 +144,7 @@ $pageTitle = "Financial Reports";
     </main>
 
     <script>
-        document.getElementById('sidebarToggle').addEventListener('click',()=>{
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
             document.getElementById('sidebar').classList.toggle('active');
         });
     </script>

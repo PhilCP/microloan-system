@@ -1,0 +1,107 @@
+/* --- 1. CORE LAYOUT & CONTAINERS --- */
+.table-container {
+    width: 100%;
+    overflow-x: auto; /* Enables horizontal swipe on mobile */
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #1a1a1a;
+    border-radius: 10px;
+    background: #000;
+    margin-bottom: 30px;
+}
+
+/* --- 2. BORROWER PROFILES (BP) --- */
+.bp-summary { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+    gap: 16px; 
+    margin-bottom: 30px; 
+}
+.bp-card { 
+    background: #111; 
+    border: 1px solid #1a1a1a; 
+    border-radius: 10px; 
+    padding: 18px; 
+    border-top: 3px solid #f0a500; 
+}
+.bp-card .lbl { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.bp-card .val { font-size: 22px; font-weight: 900; color: #fff; }
+
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.filters input, .filters select { background: #0d0d0d; border: 1px solid #222; color: #fff; padding: 9px 14px; border-radius: 6px; font-size: 13px; }
+.filters button, .filters a { background: transparent; border: 1px solid #333; color: #aaa; padding: 9px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; font-weight: 700; letter-spacing: 0.5px; }
+.filters button:hover { border-color: #f0a500; color: #f0a500; }
+
+.risk-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.risk-btn { padding: 7px 14px !important; font-size: 11px !important; text-decoration: none; border: 1px solid #333; border-radius: 6px; }
+.risk-btn.active-good { border-color: #22c55e !important; color: #22c55e !important; }
+.risk-btn.active-watch { border-color: #eab308 !important; color: #eab308 !important; }
+.risk-btn.active-high { border-color: #ef4444 !important; color: #ef4444 !important; }
+
+.bp-table, .ua-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 850px; }
+.bp-table th, .ua-table th { color: #444; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 14px; border-bottom: 1px solid #1a1a1a; text-align: left; white-space: nowrap; }
+.bp-table td, .ua-table td { padding: 14px; border-bottom: 1px solid #0f0f0f; vertical-align: middle; }
+.bp-table tr:hover td, .ua-table tr:hover td { background: #0d0d0d; }
+
+/* --- 3. OFFICER MANAGEMENT --- */
+.officer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 40px; }
+.officer-card { background: #111; border: 1px solid #1a1a1a; border-radius: 10px; padding: 20px; position: relative; }
+.officer-card.inactive { opacity: 0.45; }
+.officer-card .name { font-weight: 900; font-size: 15px; color: #fff; margin-bottom: 2px; }
+.officer-card .email { font-size: 11px; color: #333; font-family: monospace; margin-bottom: 16px; }
+
+.load-bar-label { display: flex; justify-content: space-between; font-size: 10px; color: #444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.load-bar-track { height: 6px; background: #1a1a1a; border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
+.load-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+
+.officer-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.o-stat { background: #0d0d0d; border-radius: 6px; padding: 8px; text-align: center; }
+.o-stat .num { font-size: 16px; font-weight: 900; }
+.o-stat .lbl { font-size: 9px; color: #333; text-transform: uppercase; margin-top: 2px; }
+
+.avg-badge { position: absolute; top: 16px; right: 16px; background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 6px; padding: 5px 10px; text-align: center; }
+.avg-badge .num { font-size: 14px; font-weight: 900; color: #f0a500; }
+.avg-badge .lbl { font-size: 9px; color: #333; text-transform: uppercase; }
+
+/* --- 4. UTILITIES & FORMS --- */
+.assign-form { display: flex; gap: 8px; align-items: center; }
+.assign-form select { background: #0d0d0d; border: 1px solid #222; color: #fff; padding: 6px 10px; border-radius: 5px; font-size: 12px; }
+.assign-form button { background: transparent; border: 1px solid #f0a500; color: #f0a500; padding: 6px 12px; border-radius: 5px; font-size: 11px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; }
+
+.risk-pill { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+.repay-bar-wrap { width: 60px; height: 5px; background: #1a1a1a; border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+.repay-bar { height: 100%; border-radius: 99px; }
+
+.stat-mini { display: inline-block; text-align: center; min-width: 32px; }
+.stat-mini .num { font-size: 14px; font-weight: 800; }
+.stat-mini .lbl { font-size: 9px; color: #444; }
+
+.empty-row td, .empty-ua { text-align: center; padding: 60px; color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+
+/* --- 5. MEDIA QUERIES (THE FIXES) --- */
+
+/* For Tablets and smaller */
+@media (max-width: 992px) {
+    #dashboardMain { margin-left: 0 !important; padding: 20px !important; }
+    .bp-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+
+/* For Phones */
+@media (max-width: 600px) {
+    .filters { flex-direction: column; align-items: stretch; }
+    .risk-filter { justify-content: space-between; }
+    .risk-btn { flex: 1; text-align: center; padding: 10px 5px !important; }
+    
+    .officer-stats { grid-template-columns: repeat(2, 1fr); } /* 2x2 grid instead of 4x1 */
+    
+    .assign-form { flex-direction: column; align-items: stretch; }
+    .assign-form select, .assign-form button { width: 100%; }
+    
+    .avg-badge { position: static; display: inline-block; margin-bottom: 10px; }
+    
+    .bp-card .val { font-size: 18px; }
+    .section-title { font-size: 10px; text-align: center; }
+}
+
+@media (max-width: 400px) {
+    .bp-summary { grid-template-columns: 1fr; } /* Stack cards on very small screens */
+}

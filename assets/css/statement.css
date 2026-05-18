@@ -1,0 +1,105 @@
+/* assets/css/statement.css */
+
+/* Table Styles */
+.statement-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    background: var(--bg-white, #ffffff);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.statement-table th {
+    background: var(--bg-light-gray, #f8f9fa);
+    color: #111;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 18px 15px;
+    font-weight: 800;
+    border-bottom: 2px solid #eee;
+}
+
+.statement-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #f1f1f1;
+    color: #444;
+    font-size: 14px;
+}
+
+.statement-table tr:last-child td {
+    border-bottom: none;
+}
+
+.statement-table tr:hover {
+    background: #fafafa;
+}
+
+/* Info Box Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.info-box {
+    background: var(--bg-light-gray, #f8f9fa);
+    padding: 25px;
+    border-radius: 15px;
+    border-left: 5px solid #eee;
+}
+
+.info-box h4 {
+    margin-bottom: 15px;
+    color: #111;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.info-box p {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.status-approved { background: #e3f2fd; color: #1976d2; }
+.status-completed { background: #e8f5e9; color: #2e7d32; }
+.status-pending { background: #fff3e0; color: #ef6c00; }
+
+/* Buttons */
+.btn-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Print Logic */
+@media print {
+    .sidebar, .sidebar-toggle, .dashboard-header, .btn-group, .mobile-close { 
+        display: none !important; 
+    }
+    .dashboard-main { 
+        margin: 0 !important; 
+        padding: 0 !important; 
+    }
+    .form-container {
+        border: none !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+    }
+    body { background: white; }
+}

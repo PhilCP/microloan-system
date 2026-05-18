@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 require_once '../includes/auth.php';
 requireRole('admin');
@@ -12,9 +11,6 @@ error_reporting(E_ALL);
 $user = getCurrentUser();
 $role = "admin";
 
-/**
- * Tactical Data Retrieval Helper
- */
 function fetchValue($query, $default = 0) {
     global $conn;
     $res = $conn->query($query);
@@ -23,13 +19,13 @@ function fetchValue($query, $default = 0) {
     return $row ? ($row['total'] ?? $default) : $default;
 }
 
-// 1. Macro-Level Statistics
+//Macro-Level Statistics
 $totalUsers       = fetchValue("SELECT COUNT(*) AS total FROM users");
 $totalVolume      = fetchValue("SELECT SUM(total_amount) AS total FROM loans WHERE status IN ('approved', 'completed')");
 $totalRecovered   = fetchValue("SELECT SUM(amount_paid) AS total FROM repayments");
 $pendingApprovals = fetchValue("SELECT COUNT(*) AS total FROM loans WHERE status='pending'");
 
-// 2. Loan Portfolio Counts (For Doughnut Chart)
+//Loan Portfolio Counts (For Doughnut Chart)
 $composition = [
     'approved'  => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='approved'"),
     'completed' => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='completed'"),
@@ -37,7 +33,7 @@ $composition = [
     'rejected'  => fetchValue("SELECT COUNT(*) as total FROM loans WHERE status='rejected'")
 ];
 
-//  3. Financial Volume Breakdown (Money tied to each status)
+//Financial Volume Breakdown (Money tied/correspondant to each status)
 $volumes = [
     'pending'   => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='pending'"),
     'approved'  => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='approved'"),
@@ -45,7 +41,7 @@ $volumes = [
     'rejected'  => fetchValue("SELECT SUM(total_amount) as total FROM loans WHERE status='rejected'")
 ];
 
-// 4. 6-Month Financial Liquidity Trends 
+//6-Month Financial Liquidity Trends 
 $trends = [];
 for ($i = 5; $i >= 0; $i--) {
     $month = date('Y-m', strtotime("-$i month"));
@@ -57,7 +53,7 @@ for ($i = 5; $i >= 0; $i--) {
     $trends[] = ['label' => $label, 'disbursed' => $disbursed, 'recovered' => $recovered];
 }
 
-// 5. Audit Feed 
+//Audit Feed 
 $recentActivity = $conn->query("SELECT a.*, u.full_name FROM activity_logs a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 8");
 
 $pageTitle = "System Command Center";
@@ -69,48 +65,8 @@ $pageTitle = "System Command Center";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/admin-dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root { --gold: #f0a500; --bg-dark: #000; --card-bg: #0a0a0a; --border: #1a1a1a; }
-        
-        body { margin: 0; padding: 0; background: var(--bg-dark); color: #fff; font-family: 'Inter', sans-serif; }
-        .dashboard-main { margin-left: 240px; padding: 30px; transition: 0.3s ease; min-height: 100vh; }
-
-        /* Stats Grid */
-        .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 10px; border-top: 3px solid var(--gold); }
-        .stat-card .label { font-size: 10px; text-transform: uppercase; color: #555; letter-spacing: 1px; font-weight: bold; }
-        .stat-card .value { font-size: 22px; font-weight: 800; color: #fff; margin-top: 5px; font-family: monospace; }
-
-        /* Charts Section */
-        .charts-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .chart-box { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 10px; min-width: 0; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
-
-        /* Detailed Portfolio Grid */
-        .portfolio-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .detail-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 4px; border-left: 4px solid #333; }
-        .detail-card h4 { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #888; }
-        
-        .vol-label { font-size: 9px; color: #444; text-transform: uppercase; margin-top: 15px; font-weight: 800; }
-        .vol-value { font-size: 20px; font-weight: 900; color: #fff; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; }
-        .detail-count-tag { background: #111; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 900; color: #aaa; border: 1px solid #222; }
-        .detail-desc { font-size: 12px; color: #333; line-height: 1.4; margin-top: 10px; }
-
-        .border-pending { border-left-color: #3b82f6; }
-        .border-approved { border-left-color: var(--gold); }
-        .border-completed { border-left-color: #22c55e; }
-        .border-rejected { border-left-color: #ef4444; }
-
-        /* Audit Stream */
-        .activity-feed { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 25px; }
-        .activity-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #111; font-size: 13px; }
-        
-        @media (max-width: 992px) {
-            .dashboard-main { margin-left: 0; padding-top: 80px; }
-            .charts-row { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 <body>
 
@@ -142,13 +98,10 @@ $pageTitle = "System Command Center";
             </div>
         </div>
 
-        
-
         <div class="portfolio-details-grid">
-            
             <div class="detail-card border-pending">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h4>⏱️ Pending Review</h4>
+                    <h4>Pending Review</h4>
                     <span class="detail-count-tag"><?php echo $composition['pending']; ?></span>
                 </div>
                 <div class="vol-label">Volume in Pipeline:</div>
@@ -158,7 +111,7 @@ $pageTitle = "System Command Center";
 
             <div class="detail-card border-approved">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h4>🔥 Active / Approved</h4>
+                    <h4>Active / Approved</h4>
                     <span class="detail-count-tag"><?php echo $composition['approved']; ?></span>
                 </div>
                 <div class="vol-label">Active Exposure:</div>
@@ -168,7 +121,7 @@ $pageTitle = "System Command Center";
 
             <div class="detail-card border-completed">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h4>✅ Fully Recovered</h4>
+                    <h4>Fully Recovered</h4>
                     <span class="detail-count-tag"><?php echo $composition['completed']; ?></span>
                 </div>
                 <div class="vol-label">Recovered Capital:</div>
@@ -178,14 +131,13 @@ $pageTitle = "System Command Center";
 
             <div class="detail-card border-rejected">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h4>🚫 Denied / Rejected</h4>
+                    <h4>Denied / Rejected</h4>
                     <span class="detail-count-tag"><?php echo $composition['rejected']; ?></span>
                 </div>
                 <div class="vol-label">Mitigated Risk:</div>
                 <div class="vol-value" style="color: #ef4444;">KES <?php echo number_format($volumes['rejected'], 2); ?></div>
                 <div class="detail-desc">Value of applications blocked by system security or credit policy.</div>
             </div>
-
         </div>
 
         <div class="activity-feed">
@@ -203,8 +155,6 @@ $pageTitle = "System Command Center";
         </div>
     </main>
 
-    
-
     <script>
         const chartOptions = {
             responsive: true, maintainAspectRatio: false,
@@ -215,7 +165,6 @@ $pageTitle = "System Command Center";
             }
         };
 
-        // Trend Chart Data
         const trendData = <?php echo json_encode($trends); ?>;
         new Chart(document.getElementById('trendChart'), {
             type: 'bar',
@@ -229,7 +178,6 @@ $pageTitle = "System Command Center";
             options: chartOptions
         });
 
-        // Portfolio Doughnut
         new Chart(document.getElementById('compChart'), {
             type: 'doughnut',
             data: {
@@ -243,7 +191,6 @@ $pageTitle = "System Command Center";
             options: { maintainAspectRatio: false, cutout: '80%', plugins: { legend: { position: 'bottom' } } }
         });
 
-        // Sidebar Control
         document.getElementById('sidebarToggle').addEventListener('click',()=>{
             const sidebar = document.getElementById('sidebar');
             const main = document.getElementById('dashboardMain');

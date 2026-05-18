@@ -12,7 +12,7 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-// 1. Tactical Search & Ledger Filtering
+//Search & Ledger Filtering
 $search = $_GET['search'] ?? '';
 
 // Build the ledger query with dynamic filtering
@@ -33,7 +33,7 @@ if (!empty($search)) {
     $repaymentsResult = $conn->query($repaymentsQuery . " ORDER BY r.payment_date DESC LIMIT 50");
 }
 
-// --- 2. Macro-Financial Metrics ---
+//Macro-Financial Metrics Calculation
 $statsQuery = "SELECT 
     (SELECT SUM(total_amount) FROM loans WHERE status IN ('approved', 'completed')) as total_disbursed,
     (SELECT SUM(amount_paid) FROM repayments) as total_recovered,
@@ -44,6 +44,7 @@ $stats = $conn->query($statsQuery)->fetch_assoc();
 
 $totalDisbursed = $stats['total_disbursed'] ?? 0;
 $totalRecovered = $stats['total_recovered'] ?? 0;
+
 // Risk Assessment: Capital currently "in the field"
 $outstanding = $totalDisbursed - $totalRecovered;
 
@@ -56,82 +57,7 @@ $pageTitle = "Global Intelligence Report";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        body { background: #000; color: #fff; }
-
-        /* Macro Metrics Grid */
-        .admin-stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-            gap: 20px; 
-            margin-bottom: 35px; 
-        }
-        .stat-card { 
-            background: #0a0a0a; 
-            border: 1px solid #1a1a1a; 
-            padding: 25px; 
-            border-radius: 12px; 
-            border-top: 4px solid #f0a500; 
-            transition: transform 0.3s;
-        }
-        .stat-card:hover { transform: translateY(-5px); border-color: #333; }
-        .stat-label { color: #444; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; margin-bottom: 12px; }
-        .stat-number { font-size: 26px; font-weight: 900; color: #fff; font-family: 'JetBrains Mono', monospace; }
-
-        /* Report Section */
-        .report-section { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 30px; }
-        
-        .section-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 25px; 
-            padding-bottom: 20px;
-            border-bottom: 1px solid #111;
-        }
-
-        /* Filter UI */
-        .filter-group { display: flex; gap: 10px; align-items: center; }
-        .search-input { 
-            background: #000; 
-            border: 1px solid #222; 
-            color: #fff; 
-            padding: 10px 15px; 
-            border-radius: 6px; 
-            font-size: 13px;
-            width: 250px;
-        }
-        .search-input:focus { border-color: #f0a500; outline: none; }
-
-        .btn-action { 
-            background: #f0a500; 
-            color: #000; 
-            padding: 10px 20px; 
-            border-radius: 6px; 
-            text-decoration: none; 
-            font-size: 12px; 
-            font-weight: 900; 
-            border: none;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-        .btn-action:hover { background: #fff; }
-
-        /* Ledger Table */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; color: #333; font-size: 11px; text-transform: uppercase; padding: 15px; border-bottom: 1px solid #111; }
-        td { padding: 18px 15px; border-bottom: 1px solid #0f0f0f; font-size: 14px; }
-        
-        .method-badge { 
-            font-size: 9px; 
-            padding: 3px 8px; 
-            border-radius: 4px; 
-            background: #111; 
-            color: #666; 
-            border: 1px solid #222; 
-            font-weight: 800;
-        }
-    </style>
+    <link rel="stylesheet" href="../assets/css/reports.css">
 </head>
 <body>
 
@@ -146,7 +72,7 @@ $pageTitle = "Global Intelligence Report";
         </div>
 
         <div class="admin-stats-grid">
-            <div class="stat-card">
+            <div class="stat-card" style ="border-top-color: #f0a500;">
                 <div class="stat-label">Gross Disbursement</div>
                 <div class="stat-number">KES <?php echo number_format($totalDisbursed, 0); ?></div>
             </div>
@@ -155,11 +81,11 @@ $pageTitle = "Global Intelligence Report";
                 <div class="stat-number" style="color: #22c55e;">KES <?php echo number_format($totalRecovered, 0); ?></div>
             </div>
             <div class="stat-card" style="border-top-color: #ef4444;">
-                <div class="stat-label">Systemic Risk (Outstanding)</div>
+                <div class="stat-label">Outstanding</div>
                 <div class="stat-number" style="color: #ef4444;">KES <?php echo number_format($outstanding, 0); ?></div>
             </div>
             <div class="stat-card" style="border-top-color: #3b82f6;">
-                <div class="stat-label">Operational Deployments</div>
+                <div class="stat-label">Active loans</div>
                 <div class="stat-number" style="color: #3b82f6;"><?php echo $stats['active_loans']; ?></div>
             </div>
         </div>
