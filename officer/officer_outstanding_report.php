@@ -32,7 +32,7 @@ $result = $stmt->get_result();
 
 // Net outstanding for this officer
 $netStmt = $conn->prepare("SELECT 
-    SUM(l.total_amount) as total_disbursed,
+    SUM(l.amount) as total_disbursed,
     (SELECT SUM(r.amount_paid) FROM repayments r JOIN loans l2 ON r.loan_id = l2.id WHERE l2.approved_by = ?) as total_recovered
 FROM loans l WHERE l.status IN ('approved','completed') AND l.approved_by = ?");
 $netStmt->bind_param("ii", $officerId, $officerId);
