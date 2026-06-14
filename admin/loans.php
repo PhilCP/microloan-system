@@ -488,6 +488,14 @@ async function setIdStatus(loanId, action) {
 
         if (data.success) {
             const v = data.id_verified;
+
+            // If rejecting the ID also flipped the loan's status to 'rejected',
+            // reload so the row/filters/counts reflect the new state correctly.
+            if (v === -1 && data.loan_status === 'rejected') {
+                location.reload();
+                return;
+            }
+
             let badge = '';
             if (v === 1)       badge = '<span class="id-status-badge verified">✓ Verified</span><br>';
             else if (v === -1) badge = '<span class="id-status-badge rejected">✗ ID Rejected</span><br>';

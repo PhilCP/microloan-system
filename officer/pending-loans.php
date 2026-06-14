@@ -378,20 +378,23 @@ $role = "officer";
             </div>
 
             <!-- Action buttons -->
+        
             <div class="action-buttons">
-                <button class="action-btn approve"
-                        data-id="<?php echo $loan['id']; ?>"
-                        data-action="approve"
-                        data-borrower="<?php echo htmlspecialchars($loan['full_name']); ?>"
-                        data-amount="<?php echo number_format($loan['amount'], 2); ?>"
-                        data-collateral="<?php echo htmlspecialchars($collateralType); ?>"
-                        data-collateral-desc="<?php echo htmlspecialchars($collateralDesc); ?>"
-                        data-id-number="<?php echo htmlspecialchars($idNumber); ?>"
-                        data-id-doc="<?php echo htmlspecialchars($idDocUrl); ?>"
-                        data-id-is-image="<?php echo $idIsImage ? '1' : '0'; ?>"
-                        data-remarks="<?php echo htmlspecialchars($loan['admin_remarks'] ?? ''); ?>">
-                    Approve
-                </button>
+                <?php if ($idVerified !== -1): ?>
+                    <button class="action-btn approve"
+                            data-id="<?php echo $loan['id']; ?>"
+                            data-action="approve"
+                            data-borrower="<?php echo htmlspecialchars($loan['full_name']); ?>"
+                            data-amount="<?php echo number_format($loan['amount'], 2); ?>"
+                            data-collateral="<?php echo htmlspecialchars($collateralType); ?>"
+                            data-collateral-desc="<?php echo htmlspecialchars($collateralDesc); ?>"
+                            data-id-number="<?php echo htmlspecialchars($idNumber); ?>"
+                            data-id-doc="<?php echo htmlspecialchars($idDocUrl); ?>"
+                            data-id-is-image="<?php echo $idIsImage ? '1' : '0'; ?>"
+                            data-remarks="<?php echo htmlspecialchars($loan['admin_remarks'] ?? ''); ?>">
+                        Approve
+                    </button>
+                <?php endif; ?>
                 <button class="action-btn reject"
                         data-id="<?php echo $loan['id']; ?>"
                         data-action="reject"
@@ -430,7 +433,7 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('active');
 });
 
-// ── Lightbox ──────────────────────────────────────────────────
+// Lightbox 
 function openLightbox(src, caption) {
     document.getElementById('lbImg').src       = src;
     document.getElementById('lbCaption').textContent = caption;
@@ -445,7 +448,7 @@ document.getElementById('idLightbox').addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-// ── Parse collateral for modal ────────────────────────────────
+// Parse collateral for modal 
 function parseCollateralForModal(desc) {
     if (!desc || !desc.trim()) return '<em style="color:#555;">No details provided</em>';
     const parts = desc.split(' | ');
