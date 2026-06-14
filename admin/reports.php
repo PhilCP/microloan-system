@@ -94,12 +94,20 @@ $pageTitle = "Global Intelligence Report";
             <div class="section-header">
                 <h3 style="font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; color: #f0a500;">Recent Transaction Ledger</h3>
                 
+                <!-- reports download -->
                 <div class="filter-group">
                     <form method="GET" style="display: flex; gap: 8px;">
                         <input type="text" name="search" class="search-input" placeholder="Search Identity (Name/Email)..." value="<?php echo htmlspecialchars($search); ?>">
                         <button type="submit" class="btn-action" style="background: #111; color: #fff; border: 1px solid #222;">Filter</button>
                     </form>
-                    <a href="full_history_report.php" class="btn-action" target="_blank">Export Master Ledger</a>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        <a href="full_history_report.php"           class="btn-action" target="_blank" style="background:#111;   color:#fff; border:1px solid #333;"> Master Ledger Report</a>
+                        <a href="gross_disbursement_report.php"     class="btn-action" target="_blank" style="background:#b7870a; color:#fff; border:none;"> Gross Disbursement Report</a>
+                        <a href="capital_recovered_report.php"      class="btn-action" target="_blank" style="background:#1a7a3f; color:#fff; border:none;"> Capital Recovered Report</a>
+                        <a href="outstanding_report.php"            class="btn-action" target="_blank" style="background:#a93226; color:#fff; border:none;"> Outstanding Report</a>
+                        <a href="active_loans_report.php"           class="btn-action" target="_blank" style="background:#1a5c9e; color:#fff; border:none;"> Active Loans Report</a>
+                    </div>
                 </div>
             </div>
 

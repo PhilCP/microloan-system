@@ -437,7 +437,7 @@ $pageTitle = "Loan Management";
 </div>
 
 <script>
-// ── Lightbox ──────────────────────────────────────────────────
+//  Lightbox 
 function openLb(src, caption) {
     document.getElementById('lbImg').src             = src;
     document.getElementById('lbCaption').textContent = caption;
@@ -452,7 +452,7 @@ document.getElementById('adminLightbox').addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
 
-// ── Officer Reassignment ─────────────────────────────────────
+// Officer Reassignment
 async function reassignOfficer(loanId, officerId) {
     if (!officerId) return;
     try {
@@ -470,7 +470,7 @@ async function reassignOfficer(loanId, officerId) {
     }
 }
 
-// ── ID Verify / Reject ───────────────────────────────────────
+// ── ID Verify / Reject
 async function setIdStatus(loanId, action) {
     const statusDiv = document.getElementById('idStatus-' + loanId);
     const btnsDiv   = document.getElementById('idBtns-'   + loanId);
@@ -509,7 +509,7 @@ async function setIdStatus(loanId, action) {
     }
 }
 
-// ── CSV Export ────────────────────────────────────────────────
+//CSV Export 
 function exportCSV() {
     const table = document.getElementById('loansTable');
     let csv = '';

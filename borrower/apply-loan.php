@@ -23,7 +23,7 @@ $success   = '';
 $error     = '';
 $qualError = '';
 
-// ── Qualification checks ──────────────────────────────────────
+// Qualification checks
 $chkOverdue = $conn->prepare(
     "SELECT id FROM loans
      WHERE borrower_id = ? AND status = 'approved' AND remaining_balance > 0
@@ -55,10 +55,10 @@ if (!$qualError) {
     $chkActive->close();
 }
 
-// ── Handle uploaded ID document ───────────────────────────────
+// Handle uploaded ID document
 function saveIdDocument(int $userId): string {
     if (!isset($_FILES['id_document']) || $_FILES['id_document']['error'] === UPLOAD_ERR_NO_FILE) {
-        return ''; // optional — no file uploaded
+        return '';
     }
     $file = $_FILES['id_document'];
     if ($file['error'] !== UPLOAD_ERR_OK) return '';
@@ -83,27 +83,28 @@ function saveIdDocument(int $userId): string {
 function buildCollateralDescription(string $type, array $post): string {
     $parts = [];
     switch ($type) {
-        case 'Vehicle':
-            if (!empty($post['col_reg']))     $parts[] = "Reg: "        . trim($post['col_reg']);
-            if (!empty($post['col_make']))    $parts[] = "Make/Model: " . trim($post['col_make']);
-            if (!empty($post['col_year']))    $parts[] = "Year: "       . trim($post['col_year']);
-            if (!empty($post['col_logbook'])) $parts[] = "Logbook No: " . trim($post['col_logbook']);
+        case 'Mobile Phone':
+            if (!empty($post['col_brand']))  $parts[] = "Brand/Model: " . trim($post['col_brand']);
+            if (!empty($post['col_imei']))   $parts[] = "IMEI: "        . trim($post['col_imei']);
+            if (!empty($post['col_colour'])) $parts[] = "Colour: "      . trim($post['col_colour']);
             break;
-        case 'Land Title':
-            if (!empty($post['col_title']))   $parts[] = "Title Deed: " . trim($post['col_title']);
-            if (!empty($post['col_county']))  $parts[] = "County: "     . trim($post['col_county']);
-            if (!empty($post['col_plot']))    $parts[] = "Plot No: "    . trim($post['col_plot']);
+        case 'Household Electronics':
+            if (!empty($post['col_item']))   $parts[] = "Item: "         . trim($post['col_item']);
+            if (!empty($post['col_brand2'])) $parts[] = "Brand: "        . trim($post['col_brand2']);
+            if (!empty($post['col_serial'])) $parts[] = "Serial/Model: " . trim($post['col_serial']);
             break;
-        case 'Equipment':
-            if (!empty($post['col_item']))    $parts[] = "Item: "      . trim($post['col_item']);
-            if (!empty($post['col_serial']))  $parts[] = "Serial No: " . trim($post['col_serial']);
+        case 'Household Furniture':
+            if (!empty($post['col_furnitems'])) $parts[] = "Items: "     . trim($post['col_furnitems']);
+            if (!empty($post['col_furcond']))   $parts[] = "Condition: " . trim($post['col_furcond']);
             break;
-        case 'Livestock':
+        case 'Business Stock':
+            if (!empty($post['col_biztype']))  $parts[] = "Business Type: " . trim($post['col_biztype']);
+            if (!empty($post['col_bizgoods'])) $parts[] = "Stock/Goods: "   . trim($post['col_bizgoods']);
+            if (!empty($post['col_bizval']))   $parts[] = "Est. Value: KES " . trim($post['col_bizval']);
+            break;
+        case 'Poultry / Livestock':
             if (!empty($post['col_animal'])) $parts[] = "Type: "  . trim($post['col_animal']);
             if (!empty($post['col_count']))  $parts[] = "Count: " . trim($post['col_count']);
-            break;
-        case 'Household Goods':
-            if (!empty($post['col_items']))  $parts[] = "Items: " . trim($post['col_items']);
             break;
         case 'Guarantor':
             if (!empty($post['col_gname']))  $parts[] = "Name: "         . trim($post['col_gname']);
@@ -117,7 +118,7 @@ function buildCollateralDescription(string $type, array $post): string {
     return implode(' | ', $parts);
 }
 
-// ── Process form submission ───────────────────────────────────
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$qualError) {
     $amount       = floatval($_POST['amount']);
     $duration     = intval($_POST['duration_months']);
@@ -203,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$qualError) {
     }
 }
 
-// ── Overdue banner data ───────────────────────────────────────
+// Overdue banner data
 $overdueStmt = $conn->prepare(
     "SELECT id, remaining_balance, duration_months, approval_date, overdue_penalty_rate
      FROM loans WHERE borrower_id = ? AND status = 'approved' AND remaining_balance > 0
@@ -377,13 +378,13 @@ $role      = "borrower";
                     <option value="">— Select Asset Type —</option>
                     <?php
                     $ctypes = [
-                        'Vehicle'         => 'Vehicle (Car, Motorcycle, etc.)',
-                        'Land Title'      => 'Land Title / Property',
-                        'Equipment'       => 'Business Equipment / Machinery',
-                        'Livestock'       => 'Livestock',
-                        'Household Goods' => 'Household Goods / Electronics',
-                        'Guarantor'       => 'Personal Guarantor',
-                        'Other'           => 'Other',
+                        'Mobile Phone'          => 'Mobile Phone',
+                        'Household Electronics' => 'Household Electronics (TV, Radio, etc.)',
+                        'Household Furniture'   => 'Household Furniture',
+                        'Business Stock'        => 'Business Stock / Trade Goods',
+                        'Poultry / Livestock'   => 'Poultry / Small Livestock',
+                        'Guarantor'             => 'Personal Guarantor',
+                        'Other'                 => 'Other',
                     ];
                     foreach ($ctypes as $val => $label):
                         $sel = (($_POST['collateral_type'] ?? '') === $val) ? 'selected' : '';
@@ -393,49 +394,123 @@ $role      = "borrower";
                 </select>
             </div>
 
-            <div id="fields-Vehicle" class="col-fields">
+            <!-- Mobile Phone -->
+            <div id="fields-Mobile Phone" class="col-fields">
                 <div class="fields-grid">
-                    <div class="form-group"><label>Registration Plate <span class="required">*</span></label><input type="text" name="col_reg" placeholder="e.g. KCA 001A" value="<?php echo htmlspecialchars($_POST['col_reg'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Make &amp; Model <span class="required">*</span></label><input type="text" name="col_make" placeholder="e.g. Toyota Fielder" value="<?php echo htmlspecialchars($_POST['col_make'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Year of Manufacture <span class="required">*</span></label><input type="number" name="col_year" placeholder="e.g. 2018" min="1980" max="<?php echo date('Y'); ?>" value="<?php echo htmlspecialchars($_POST['col_year'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Logbook Number <span class="required">*</span></label><input type="text" name="col_logbook" placeholder="e.g. LB/2018/123456" value="<?php echo htmlspecialchars($_POST['col_logbook'] ?? ''); ?>"></div>
+                    <div class="form-group">
+                        <label>Phone Brand &amp; Model <span class="required">*</span></label>
+                        <input type="text" name="col_brand" placeholder="e.g. Samsung Galaxy A05" value="<?php echo htmlspecialchars($_POST['col_brand'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>IMEI Number <span class="required">*</span></label>
+                        <input type="text" name="col_imei" placeholder="Dial *#06# to find it" maxlength="15" value="<?php echo htmlspecialchars($_POST['col_imei'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Colour <span class="required">*</span></label>
+                        <input type="text" name="col_colour" placeholder="e.g. Black" value="<?php echo htmlspecialchars($_POST['col_colour'] ?? ''); ?>">
+                    </div>
                 </div>
             </div>
-            <div id="fields-Land Title" class="col-fields">
+
+            <!-- Household Electronics -->
+            <div id="fields-Household Electronics" class="col-fields">
                 <div class="fields-grid">
-                    <div class="form-group"><label>Title Deed Number <span class="required">*</span></label><input type="text" name="col_title" placeholder="e.g. Nairobi/Block 12/3456" value="<?php echo htmlspecialchars($_POST['col_title'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>County <span class="required">*</span></label><input type="text" name="col_county" placeholder="e.g. Nairobi" value="<?php echo htmlspecialchars($_POST['col_county'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Plot / LR Number <span class="required">*</span></label><input type="text" name="col_plot" placeholder="e.g. LR No. 209/8765" value="<?php echo htmlspecialchars($_POST['col_plot'] ?? ''); ?>"></div>
+                    <div class="form-group">
+                        <label>Item Description <span class="required">*</span></label>
+                        <input type="text" name="col_item" placeholder="e.g. 32-inch TV, Radio, Iron Box" value="<?php echo htmlspecialchars($_POST['col_item'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Brand <span class="required">*</span></label>
+                        <input type="text" name="col_brand2" placeholder="e.g. Ramtons, LG, Sony" value="<?php echo htmlspecialchars($_POST['col_brand2'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Serial / Model Number</label>
+                        <input type="text" name="col_serial" placeholder="e.g. SN123456 (if available)" value="<?php echo htmlspecialchars($_POST['col_serial'] ?? ''); ?>">
+                    </div>
                 </div>
             </div>
-            <div id="fields-Equipment" class="col-fields">
-                <div class="fields-grid">
-                    <div class="form-group"><label>Item Description <span class="required">*</span></label><input type="text" name="col_item" placeholder="e.g. Welding Machine" value="<?php echo htmlspecialchars($_POST['col_item'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Serial Number <span class="required">*</span></label><input type="text" name="col_serial" placeholder="e.g. SN/2021/XYZ789" value="<?php echo htmlspecialchars($_POST['col_serial'] ?? ''); ?>"></div>
-                </div>
-            </div>
-            <div id="fields-Livestock" class="col-fields">
-                <div class="fields-grid">
-                    <div class="form-group"><label>Type of Animal <span class="required">*</span></label><input type="text" name="col_animal" placeholder="e.g. Dairy Cattle, Goats" value="<?php echo htmlspecialchars($_POST['col_animal'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Number of Animals <span class="required">*</span></label><input type="number" name="col_count" placeholder="e.g. 5" min="1" value="<?php echo htmlspecialchars($_POST['col_count'] ?? ''); ?>"></div>
-                </div>
-            </div>
-            <div id="fields-Household Goods" class="col-fields">
+
+            <!-- Household Furniture -->
+            <div id="fields-Household Furniture" class="col-fields">
                 <div class="fields-grid single">
-                    <div class="form-group"><label>List of Items <span class="required">*</span></label><textarea name="col_items" rows="3" placeholder="e.g. 55-inch Samsung TV (SN: ABC123), LG Fridge"><?php echo htmlspecialchars($_POST['col_items'] ?? ''); ?></textarea></div>
+                    <div class="form-group">
+                        <label>List of Furniture Items <span class="required">*</span></label>
+                        <textarea name="col_furnitems" rows="3" placeholder="e.g. 3-seater sofa set, Bed frame + mattress, Dining table with 4 chairs"><?php echo htmlspecialchars($_POST['col_furnitems'] ?? ''); ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Overall Condition <span class="required">*</span></label>
+                        <select name="col_furcond">
+                            <option value="">— Select —</option>
+                            <?php foreach (['New','Good','Fair','Worn'] as $c):
+                                $sel = (($_POST['col_furcond'] ?? '') === $c) ? 'selected' : '';
+                                echo "<option value='$c' $sel>$c</option>";
+                            endforeach; ?>
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            <!-- Business Stock -->
+            <div id="fields-Business Stock" class="col-fields">
+                <div class="fields-grid">
+                    <div class="form-group">
+                        <label>Type of Business <span class="required">*</span></label>
+                        <input type="text" name="col_biztype" placeholder="e.g. Mama mboga, Mitumba, Chips stall" value="<?php echo htmlspecialchars($_POST['col_biztype'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock / Goods Description <span class="required">*</span></label>
+                        <input type="text" name="col_bizgoods" placeholder="e.g. Assorted vegetables, Second-hand clothes" value="<?php echo htmlspecialchars($_POST['col_bizgoods'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Stock Value (KES) <span class="required">*</span></label>
+                        <input type="number" name="col_bizval" placeholder="e.g. 3000" min="0" value="<?php echo htmlspecialchars($_POST['col_bizval'] ?? ''); ?>">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Poultry / Livestock -->
+            <div id="fields-Poultry / Livestock" class="col-fields">
+                <div class="fields-grid">
+                    <div class="form-group">
+                        <label>Type of Animal <span class="required">*</span></label>
+                        <input type="text" name="col_animal" placeholder="e.g. Chicken, Ducks, Rabbits, Goats" value="<?php echo htmlspecialchars($_POST['col_animal'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Animals <span class="required">*</span></label>
+                        <input type="number" name="col_count" placeholder="e.g. 10" min="1" value="<?php echo htmlspecialchars($_POST['col_count'] ?? ''); ?>">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guarantor -->
             <div id="fields-Guarantor" class="col-fields">
                 <div class="fields-grid">
-                    <div class="form-group"><label>Guarantor Full Name <span class="required">*</span></label><input type="text" name="col_gname" placeholder="e.g. Jane Wanjiru Kamau" value="<?php echo htmlspecialchars($_POST['col_gname'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Guarantor Phone <span class="required">*</span></label><input type="text" name="col_gphone" placeholder="e.g. 0712 345 678" value="<?php echo htmlspecialchars($_POST['col_gphone'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Guarantor ID Number <span class="required">*</span></label><input type="text" name="col_gid" placeholder="e.g. 12345678" value="<?php echo htmlspecialchars($_POST['col_gid'] ?? ''); ?>"></div>
-                    <div class="form-group"><label>Relationship to Borrower <span class="required">*</span></label><input type="text" name="col_grel" placeholder="e.g. Spouse, Sibling, Employer" value="<?php echo htmlspecialchars($_POST['col_grel'] ?? ''); ?>"></div>
+                    <div class="form-group">
+                        <label>Guarantor Full Name <span class="required">*</span></label>
+                        <input type="text" name="col_gname" placeholder="e.g. Jane Wanjiru Kamau" value="<?php echo htmlspecialchars($_POST['col_gname'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Guarantor Phone <span class="required">*</span></label>
+                        <input type="text" name="col_gphone" placeholder="e.g. 0712 345 678" value="<?php echo htmlspecialchars($_POST['col_gphone'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Guarantor ID Number <span class="required">*</span></label>
+                        <input type="text" name="col_gid" placeholder="e.g. 12345678" value="<?php echo htmlspecialchars($_POST['col_gid'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship to Borrower <span class="required">*</span></label>
+                        <input type="text" name="col_grel" placeholder="e.g. Spouse, Neighbour, Chama member" value="<?php echo htmlspecialchars($_POST['col_grel'] ?? ''); ?>">
+                    </div>
                 </div>
             </div>
+
+            <!-- Other -->
             <div id="fields-Other" class="col-fields">
                 <div class="fields-grid single">
-                    <div class="form-group"><label>Describe Your Collateral <span class="required">*</span></label><textarea name="col_other" rows="3" placeholder="Describe the asset in enough detail to identify and recover it."><?php echo htmlspecialchars($_POST['col_other'] ?? ''); ?></textarea></div>
+                    <div class="form-group">
+                        <label>Describe Your Collateral <span class="required">*</span></label>
+                        <textarea name="col_other" rows="3" placeholder="Describe the item clearly — what it is, its condition, and how it can be identified."><?php echo htmlspecialchars($_POST['col_other'] ?? ''); ?></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -448,7 +523,7 @@ $role      = "borrower";
         <div class="collateral-box" style="border-color:rgba(59,130,246,0.3);margin-top:24px;">
             <h4 style="color:#3b82f6;">🪪 Identity Document</h4>
             <p style="font-size:13px;color:#888;margin-bottom:18px;">
-                Enter your National ID number and optionally attach a photo or scan.
+                Enter your National ID number and attach a photo or scan.
                 An officer will review it during loan assessment.
             </p>
 
@@ -551,12 +626,16 @@ function onIdInput() {
 
 // localStorage autosave
 const SAVE_KEY    = 'loanForm_draft';
-const SAVE_FIELDS = ['amount','duration_months','purpose','collateral_type',
-    'col_reg','col_make','col_year','col_logbook',
-    'col_title','col_county','col_plot',
-    'col_item','col_serial','col_animal','col_count',
-    'col_items','col_gname','col_gphone','col_gid','col_grel',
-    'col_other','id_number'];
+const SAVE_FIELDS = [
+    'amount','duration_months','purpose','collateral_type',
+    'col_brand','col_imei','col_colour',
+    'col_item','col_brand2','col_serial',
+    'col_furnitems','col_furcond',
+    'col_biztype','col_bizgoods','col_bizval',
+    'col_animal','col_count',
+    'col_gname','col_gphone','col_gid','col_grel',
+    'col_other','id_number'
+];
 
 function saveDraft() {
     const draft = {};

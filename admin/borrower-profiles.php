@@ -177,12 +177,12 @@ function sortLink($col, $label, $current, $order) {
 <table class="bp-table">
     <thead>
         <tr>
-            <th><?php echo sortLink('full_name',    'Borrower',       $sort, $order); ?></th>
+            <th><?php echo sortLink('full_name','Borrower',$sort, $order); ?></th>
             <th>Risk</th>
-            <th><?php echo sortLink('total_loans',  'Loans',          $sort, $order); ?></th>
+            <th><?php echo sortLink('total_loans','Loans',$sort, $order); ?></th>
             <th><?php echo sortLink('total_borrowed','Total Borrowed', $sort, $order); ?></th>
-            <th><?php echo sortLink('outstanding',  'Outstanding',    $sort, $order); ?></th>
-            <th><?php echo sortLink('repayment_rate','Repaid',         $sort, $order); ?></th>
+            <th><?php echo sortLink('outstanding',  'Outstanding',$sort, $order); ?></th>
+            <th><?php echo sortLink('repayment_rate','Repaid',$sort, $order); ?></th>
             <th>Breakdown</th>
             <th style="text-align:right;">Actions</th>
         </tr>

@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mail->Body    = "
                     <div style='font-family:sans-serif;background:#000;color:#fff;padding:40px;border-radius:12px;max-width:500px;margin:auto;'>
                         <div style='text-align:center;margin-bottom:24px;'>
-                            <div style='font-size:36px;'>🏦</div>
+                            
                             <h2 style='color:#f0a500;margin:8px 0 0;'>Microloan System</h2>
                         </div>
                         <p>Hello <strong>{$user['full_name']}</strong>,</p>

@@ -19,7 +19,7 @@ require_once '../config/db.php';
 ob_clean();
 header('Content-Type: application/json');
 
-// ── Auth check ────────────────────────────────────────────────
+// Auth check
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Not authenticated. Please log in again.']);
     exit;
@@ -42,7 +42,7 @@ $userId   = (int)$_SESSION['user_id'];
 $idNumber = trim($_POST['id_number'] ?? '');
 $fileData = $_FILES['id_document'] ?? null;
 
-// ── ID format validation ──────────────────────────────────────
+//ID format validation
 if (empty($idNumber)) {
     echo json_encode(['success' => false, 'error' => 'Please enter your National ID number.']);
     exit;
@@ -52,7 +52,7 @@ if (!preg_match('/^\d{7,8}$/', $idNumber)) {
     exit;
 }
 
-// ── File check ────────────────────────────────────────────────
+//  File check 
 if (!$fileData || !isset($fileData['error'])) {
     echo json_encode(['success' => false, 'error' => 'No file data received by server.']);
     exit;
