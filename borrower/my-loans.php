@@ -50,10 +50,17 @@ $result = $stmt->get_result();
             <h2 style="margin:0;font-weight:800;">Loan Portfolio</h2>
             <p style="color:#666;margin-top:5px;">Track and manage your operational capital.</p>
         </div>
-        <div class="btn-group-header">
-            <a href="print-loan-history.php" class="btn-action btn-report">Full Report</a>
-            <a href="apply-loan.php" class="btn-action">＋ New Request</a>
-        </div>
+      <div class="btn-group-header">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <a href="print-loan-history.php"              class="btn-action btn-report" target="_blank">Full History</a>
+        <a href="borrower_active_loans_report.php"    class="btn-action" target="_blank" style="background:#1a5c9e;">Active Loans</a>
+        <a href="borrower_outstanding_report.php"     class="btn-action" target="_blank" style="background:#a93226;">Outstanding</a>
+        <a href="borrower_completed_loans_report.php" class="btn-action" target="_blank" style="background:#1a7a3f;">Completed</a>
+        <a href="borrower_pending_report.php"         class="btn-action" target="_blank" style="background:#b7870a;">Pending</a>
+    </div>
+    
+</div>
+ 
     </div>
 
     <!-- Filters -->
