@@ -95,10 +95,14 @@ $pageTitle = "Financial Reports";
         </div>
 
         <div class="report-section">
-            <div class="section-header">
-                <h3>Transaction History</h3>
-                <a href="full_history_report.php" class="btn-print" target="_blank">Export Official History</a>
-            </div>
+           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <a href="full_history_report.php"                    class="btn-print" target="_blank"> Full History Report</a>
+    <a href="officer_gross_disbursement_report.php"      class="btn-print" target="_blank" style="background:#b7870a;"> Gross Disbursement Report</a>
+    <a href="officer_capital_recovered_report.php"       class="btn-print" target="_blank" style="background:#1a7a3f;"> Capital Recovered Report</a>
+    <a href="officer_outstanding_report.php"             class="btn-print" target="_blank" style="background:#a93226;"> Outstanding Report</a>
+    <a href="officer_active_loans_report.php"            class="btn-print" target="_blank" style="background:#1a5c9e;"> Active Loans Report</a>
+</div>
+ 
 
             <div class="table-container">
                 <table>
