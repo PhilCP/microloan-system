@@ -30,14 +30,14 @@ $query = "
         u.phone,
         u.created_at,
         u.is_active,
-        COUNT(l.id)                                                        AS total_loans,
-        SUM(l.status = 'approved')                                         AS approved,
-        SUM(l.status = 'completed')                                        AS completed,
-        SUM(l.status = 'rejected')                                         AS rejected,
-        SUM(l.status = 'pending')                                          AS pending,
+        COUNT(l.id) AS total_loans,
+        SUM(l.status = 'approved')  AS approved,
+        SUM(l.status = 'completed')  AS completed,
+        SUM(l.status = 'rejected') AS rejected,
+        SUM(l.status = 'pending') AS pending,
         COALESCE(SUM(CASE WHEN l.status IN ('approved','completed') THEN l.total_amount ELSE 0 END), 0) AS total_borrowed,
         COALESCE(SUM(CASE WHEN l.status IN ('approved','completed') THEN l.remaining_balance ELSE 0 END), 0) AS outstanding,
-        COALESCE(SUM(r.amount_paid), 0)                                    AS total_repaid
+        COALESCE(SUM(r.amount_paid), 0)  AS total_repaid
     FROM users u
     LEFT JOIN loans l ON u.id = l.borrower_id
     LEFT JOIN repayments r ON l.id = r.loan_id
@@ -93,9 +93,9 @@ function riskTag($row) {
     if ($rejected >= 3 || ($row['total_borrowed'] > 0 && $rate < 0.40)) {
         return ['label' => 'HIGH RISK', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,0.1)'];
     } elseif ($rejected >= 1 || ($row['total_borrowed'] > 0 && $rate < 0.75)) {
-        return ['label' => 'WATCH',     'color' => '#eab308', 'bg' => 'rgba(234,179,8,0.1)'];
+        return ['label' => 'WATCH', 'color' => '#eab308', 'bg' => 'rgba(234,179,8,0.1)'];
     }
-    return     ['label' => 'GOOD',      'color' => '#22c55e', 'bg' => 'rgba(34,197,94,0.1)'];
+    return     ['label' => 'GOOD', 'color' => '#22c55e', 'bg' => 'rgba(34,197,94,0.1)'];
 }
 
 function sortLink($col, $label, $current, $order) {

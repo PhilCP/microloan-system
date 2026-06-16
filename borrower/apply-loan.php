@@ -521,7 +521,7 @@ $role      = "borrower";
 
         <!-- ID Section -->
         <div class="collateral-box" style="border-color:rgba(59,130,246,0.3);margin-top:24px;">
-            <h4 style="color:#3b82f6;">🪪 Identity Document</h4>
+            <h4 style="color:#3b82f6;">Identity Document</h4>
             <p style="font-size:13px;color:#888;margin-bottom:18px;">
                 Enter your National ID number and attach a photo or scan.
                 An officer will review it during loan assessment.

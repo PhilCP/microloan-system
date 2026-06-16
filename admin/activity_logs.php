@@ -8,7 +8,7 @@ require_once '../config/db.php';
 $user = getCurrentUser();
 $role = "admin";
 
-// 1. Fetch Logs with User Details (Limited to 100 for performance)
+// Fetch Logs with User Details (Limited to 100 for performance)
 $logsQuery = "SELECT al.*, u.full_name, u.role as user_role 
               FROM activity_logs al 
               JOIN users u ON al.user_id = u.id 
@@ -86,7 +86,7 @@ $pageTitle = "System Audit Logs";
     </main>
 
     <script>
-        // Sidebar Toggle with persistent layout
+        // Sidebar Toggle 
         document.getElementById('sidebarToggle').addEventListener('click',()=>{
             const sidebar = document.getElementById('sidebar');
             const main = document.getElementById('dashboardMain');
@@ -94,12 +94,8 @@ $pageTitle = "System Audit Logs";
             main.style.marginLeft = sidebar.classList.contains('active') ? '240px' : '0';
         });
 
-        // Optional: Auto-refresh logs every 60 seconds
-        /*
-        setTimeout(function(){
-           location.reload();
-        }, 60000);
-        */
+        
+       
     </script>
 </body>
 </html>

@@ -12,9 +12,9 @@ $message = "";
 $allowedRoles = ['officer'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $full_name   = trim($_POST['full_name']);
-    $email       = trim($_POST['email']);
-    $phone       = trim($_POST['phone'] ?? '');
+    $full_name = trim($_POST['full_name']);
+    $email= trim($_POST['email']);
+    $phone= trim($_POST['phone'] ?? '');
     $raw_password = $_POST['password'];
     $target_role = $_POST['role'];
 

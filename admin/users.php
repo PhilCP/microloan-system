@@ -99,13 +99,13 @@ $pageTitle = "Personnel Registry";
                 <div style="background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
                             color:#ef4444; padding:12px 18px; border-radius:8px; margin-bottom:18px;
                             font-size:13px; font-weight:700;">
-                    ⚠ Cannot revoke — this borrower has an outstanding loan balance. Settle the debt first.
+                     Cannot revoke — this borrower has an outstanding loan balance. Settle the debt first.
                 </div>
             <?php elseif ($_GET['msg'] === 'state_updated'): ?>
                 <div style="background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.25);
                             color:#22c55e; padding:12px 18px; border-radius:8px; margin-bottom:18px;
                             font-size:13px; font-weight:700;">
-                    ✓ User access state updated.
+                    User access state updated.
                 </div>
             <?php endif; ?>
         <?php endif; ?>

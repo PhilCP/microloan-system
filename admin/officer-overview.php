@@ -37,16 +37,16 @@ $officerStats = $conn->query("
         u.full_name,
         u.email,
         u.is_active,
-        COUNT(l.id)                          AS total_assigned,
-        SUM(l.status = 'pending')            AS pending,
-        SUM(l.status = 'approved')           AS approved,
-        SUM(l.status = 'rejected')           AS rejected,
-        SUM(l.status = 'completed')          AS completed,
+        COUNT(l.id) AS total_assigned,
+        SUM(l.status = 'pending') AS pending,
+        SUM(l.status = 'approved') AS approved,
+        SUM(l.status = 'rejected') AS rejected,
+        SUM(l.status = 'completed')  AS completed,
         ROUND(AVG(
             CASE WHEN l.status IN ('approved','rejected')
             THEN DATEDIFF(l.approval_date, l.created_at)
             ELSE NULL END
-        ), 1)                                AS avg_days_to_action
+        ), 1) AS avg_days_to_action
     FROM users u
     LEFT JOIN loans l ON u.id = l.assigned_officer_id
     WHERE u.role = 'officer'
