@@ -1,4 +1,3 @@
-
 .modal { 
     display: none; 
     position: fixed; 
@@ -8,19 +7,28 @@
     width: 100%; 
     height: 100%; 
     background: rgba(0,0,0,0.85); 
-    backdrop-filter: blur(5px); 
+    backdrop-filter: blur(5px);
+    overflow-y: auto;
+    padding: 20px 0;
+    box-sizing: border-box;
 }
 
 .modal-content { 
     background: #1a1a1a; 
-    margin: 10% auto; 
+    margin: 0 auto;
     padding: 30px; 
     border: 1px solid #f0a500; 
     width: 90%;
-    max-width: 500px;
+    max-width: 680px;
     border-radius: 12px; 
     color: white; 
     box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
+}
+.modal-content img {
+    max-height: 160px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 6px;
 }
 
 .modal-content h3 { 
@@ -96,7 +104,116 @@
 .btn-cancel:hover {
     background: #444;
 }
+/* ── ID Document Preview*/
+.id-block {
+    background: rgba(59,130,246,0.05);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-left: 3px solid #3b82f6;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 14px;
+}
+.id-block .block-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #3b82f6;
+    margin-bottom: 8px;
+}
+.id-number-row {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 10px;
+}
+.id-number-row strong {
+    color: #fff;
+    font-size: 15px;
+    letter-spacing: .04em;
+}
+.id-doc-preview {
+    margin-top: 8px;
+}
+.id-doc-preview img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.id-doc-preview img:hover { opacity: 0.85; }
+.id-doc-pdf-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.35);
+    color: #60a5fa;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.id-doc-pdf-link:hover { background: rgba(59,130,246,0.22); }
+.id-doc-missing {
+    font-size: 12px;
+    color: #555;
+    font-style: italic;
+}
+.id-verified-badge {
+    display: inline-block;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: #22c55e;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
 
+/* ── Lightbox  */
+#idLightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+}
+#idLightbox.open { display: flex; }
+#idLightbox img {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+#idLightbox .lb-close {
+    position: absolute;
+    top: 20px; right: 28px;
+    font-size: 32px;
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+#idLightbox .lb-close:hover { opacity: 1; }
+#idLightbox .lb-caption {
+    color: #aaa;
+    font-size: 13px;
+    text-align: center;
+}
 /* Loan Cards */
 .loans-grid {
     display: grid;
@@ -212,7 +329,7 @@
     color: #ddd;
     line-height: 1.6;
 }
-/* ── Collateral Block ───────────────────────────── */
+/* ── Collateral Block  */
 .collateral-block {
     background: rgba(240,165,0,0.06);
     border: 1px solid rgba(240,165,0,0.25);
@@ -265,7 +382,7 @@
     font-style: italic;
 }
 
-/* ── Overdue / Penalty Block ────────────────────── */
+/* ── Overdue / Penalty Block */
 .penalty-block {
     background: rgba(239,68,68,0.07);
     border: 1px solid rgba(239,68,68,0.25);
@@ -291,7 +408,7 @@
     margin-top: 2px;
 }
 
-/* ── Section divider ────────────────────────────── */
+/* ── Section divider  */
 .card-section-divider {
     border: none;
     border-top: 1px solid #1a1a1a;

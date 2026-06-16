@@ -15,19 +15,34 @@ $bUser = $uStmt->get_result()->fetch_assoc();
 
 if (!$bUser) die("Personnel record not found.");
 
-//Fetch Aggregated Story
-$summary = $conn->query("SELECT 
+
+// Fetch Aggregated Story for only approved and completed loans
+$sumStmt = $conn->prepare("SELECT 
     COUNT(id) as loan_count, 
     SUM(total_amount) as total_borrowed, 
     SUM(remaining_balance) as total_debt 
-    FROM loans WHERE borrower_id = $borrower_id")->fetch_assoc();
+    FROM loans 
+    WHERE borrower_id = ? 
+    AND status IN ('approved', 'completed')");
+$sumStmt->bind_param("i", $borrower_id);
+$sumStmt->execute();
+$summary = $sumStmt->get_result()->fetch_assoc();
 
-$totalPaid = $conn->query("SELECT SUM(amount_paid) as paid FROM repayments r JOIN loans l ON r.loan_id = l.id WHERE l.borrower_id = $borrower_id")->fetch_assoc()['paid'] ?? 0;
+$paidStmt = $conn->prepare("SELECT SUM(r.amount_paid) as paid 
+    FROM repayments r 
+    JOIN loans l ON r.loan_id = l.id 
+    WHERE l.borrower_id = ? 
+    AND l.status IN ('approved', 'completed')");
+$paidStmt->bind_param("i", $borrower_id);
+$paidStmt->execute();
+$totalPaid = $paidStmt->get_result()->fetch_assoc()['paid'] ?? 0;
 
 //Fetch Full Transaction Timeline
-$timeline = $conn->query("SELECT r.*, l.id as ln_id FROM repayments r JOIN loans l ON r.loan_id = l.id WHERE l.borrower_id = $borrower_id ORDER BY r.payment_date DESC");
+$timeline = $conn->prepare("SELECT r.*, l.id as ln_id FROM repayments r JOIN loans l ON r.loan_id = l.id WHERE l.borrower_id = ? ORDER BY r.payment_date DESC");
+$timeline->bind_param("i", $borrower_id);
+$timeline->execute();
+$timeline = $timeline->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

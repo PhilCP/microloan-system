@@ -146,8 +146,8 @@ $pageTitle = "Loan Management";
         <p>All loan applications — collateral details, overdue status, ID verification, and penalty tracking</p>
     </div>
     <div class="toolbar-right">
-        <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
-        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+     
     </div>
 </div>
 
